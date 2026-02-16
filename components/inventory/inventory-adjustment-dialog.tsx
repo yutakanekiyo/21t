@@ -41,7 +41,7 @@ export function InventoryAdjustmentDialog({
 
   const handleChange = (
     location: LocationType,
-    field: "body" | "bottom" | "lid" | "rolls",
+    field: "body" | "bottom" | "lid" | "rolls" | "pailBody" | "pailBottom" | "pailLid" | "pailRolls",
     value: string
   ) => {
     const numValue = parseInt(value) || 0;
@@ -71,6 +71,9 @@ export function InventoryAdjustmentDialog({
                 <div className="font-semibold text-lg border-b pb-2">
                   {location.name}
                 </div>
+
+                {/* 既存製品 */}
+                <div className="text-sm font-medium text-muted-foreground">既存製品</div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor={`${location.id}-body`}>ボディ（個）</Label>
@@ -120,6 +123,62 @@ export function InventoryAdjustmentDialog({
                       value={formData[location.id].rolls}
                       onChange={(e) =>
                         handleChange(location.id, "rolls", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* ペール製品 */}
+                <div className="text-sm font-medium text-muted-foreground mt-4">ペール製品</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor={`${location.id}-pailBody`}>ボディ（個）</Label>
+                    <Input
+                      id={`${location.id}-pailBody`}
+                      type="number"
+                      min="0"
+                      value={formData[location.id].pailBody}
+                      onChange={(e) =>
+                        handleChange(location.id, "pailBody", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor={`${location.id}-pailBottom`}>底（枚）</Label>
+                    <Input
+                      id={`${location.id}-pailBottom`}
+                      type="number"
+                      min="0"
+                      value={formData[location.id].pailBottom}
+                      onChange={(e) =>
+                        handleChange(location.id, "pailBottom", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor={`${location.id}-pailLid`}>蓋（枚）</Label>
+                    <Input
+                      id={`${location.id}-pailLid`}
+                      type="number"
+                      min="0"
+                      value={formData[location.id].pailLid}
+                      onChange={(e) =>
+                        handleChange(location.id, "pailLid", e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor={`${location.id}-pailRolls`}>ロール（本）</Label>
+                    <Input
+                      id={`${location.id}-pailRolls`}
+                      type="number"
+                      min="0"
+                      value={formData[location.id].pailRolls}
+                      onChange={(e) =>
+                        handleChange(location.id, "pailRolls", e.target.value)
                       }
                     />
                   </div>

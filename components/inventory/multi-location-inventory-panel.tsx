@@ -8,7 +8,7 @@ import { Package, Edit, ArrowRightLeft } from "lucide-react";
 import { LocationInventoryCard } from "./location-inventory-card";
 import { InventoryAdjustmentDialog } from "./inventory-adjustment-dialog";
 import { InventoryTransferDialog } from "./inventory-transfer-dialog";
-import { DEFAULT_ROLL_CONFIG } from "@/utils/constants";
+import { DEFAULT_ROLL_CONFIG, PAIL_ROLL_CONFIG } from "@/utils/constants";
 
 interface MultiLocationInventoryPanelProps {
   inventory: Inventory;
@@ -24,19 +24,26 @@ export function MultiLocationInventoryPanel({
 
   // 合計在庫を計算
   const totalInventory = getTotalInventory(inventory);
+
+  // 既存製品
   const totalRollPieces = totalInventory.rolls * DEFAULT_ROLL_CONFIG.piecesPerRoll;
   const bottomLidPool =
     totalInventory.bottom + totalInventory.lid + totalRollPieces;
 
+  // ペール製品
+  const totalPailRollPieces = totalInventory.pailRolls * PAIL_ROLL_CONFIG.piecesPerRoll;
+  const pailBottomLidPool =
+    totalInventory.pailBottom + totalInventory.pailLid + totalPailRollPieces;
+
   return (
     <>
       <div className="space-y-4">
-        {/* 合計在庫カード */}
+        {/* 合計在庫カード - 既存製品 */}
         <Card className="border-2 border-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="flex items-center gap-2">
               <Package className="h-6 w-6" />
-              合計在庫（全拠点）
+              合計在庫（全拠点）- 既存製品
             </CardTitle>
             <div className="flex gap-2">
               <Button
@@ -103,6 +110,83 @@ export function MultiLocationInventoryPanel({
               </div>
               <p className="text-xs text-muted-foreground mt-1">
                 ※底と蓋は同じロール材から切り出されます
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 合計在庫カード - ペール製品 */}
+        <Card className="border-2 border-green-500">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-6 w-6" />
+              合計在庫（全拠点）- ペール製品
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsTransferDialogOpen(true)}
+              >
+                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                在庫移動
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAdjustmentDialogOpen(true)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                在庫調整
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">ボディ</p>
+                <p className="text-3xl font-bold">
+                  {totalInventory.pailBody.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">個</p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">底</p>
+                <p className="text-3xl font-bold">
+                  {totalInventory.pailBottom.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">枚</p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">蓋</p>
+                <p className="text-3xl font-bold">
+                  {totalInventory.pailLid.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">枚</p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">ロール</p>
+                <p className="text-3xl font-bold">
+                  {totalInventory.pailRolls.toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  本 ({totalPailRollPieces.toLocaleString()}セット)
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">底・蓋 合計在庫</p>
+                <p className="text-xl font-bold text-green-600">
+                  {pailBottomLidPool.toLocaleString()}セット
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                ※ペール: 1ロール = 630セット（底+蓋）
               </p>
             </div>
           </CardContent>

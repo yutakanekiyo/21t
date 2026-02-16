@@ -25,10 +25,16 @@ interface InventoryTransferDialogProps {
 }
 
 const ITEM_TYPES = [
-  { id: "body", name: "ボディ", unit: "個" },
-  { id: "bottom", name: "底", unit: "枚" },
-  { id: "lid", name: "蓋", unit: "枚" },
-  { id: "rolls", name: "ロール", unit: "本" },
+  // 既存製品
+  { id: "body", name: "ボディ（既存）", unit: "個" },
+  { id: "bottom", name: "底（既存）", unit: "枚" },
+  { id: "lid", name: "蓋（既存）", unit: "枚" },
+  { id: "rolls", name: "ロール（既存）", unit: "本" },
+  // ペール製品
+  { id: "pailBody", name: "ボディ（ペール）", unit: "個" },
+  { id: "pailBottom", name: "底（ペール）", unit: "枚" },
+  { id: "pailLid", name: "蓋（ペール）", unit: "枚" },
+  { id: "pailRolls", name: "ロール（ペール）", unit: "本" },
 ];
 
 export function InventoryTransferDialog({

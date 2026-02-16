@@ -28,6 +28,11 @@ export function OrderItem({ order, snapshot, onEdit, onDelete }: OrderItemProps)
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-lg font-semibold">{order.orderNumber}</h3>
+              {/* 製品タイプバッジ */}
+              <Badge variant={order.productType === 'pail' ? 'default' : 'secondary'}>
+                {order.productType === 'pail' ? 'ペール' : '既存製品'}
+              </Badge>
+              {/* 在庫状況バッジ */}
               {snapshot.isAllSufficient ? (
                 <Badge variant="success">OK</Badge>
               ) : (

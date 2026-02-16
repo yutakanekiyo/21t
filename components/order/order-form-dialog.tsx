@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Order, OrderFormData } from "@/types";
+import { Order, OrderFormData, ProductType } from "@/types";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDateISO } from '@/utils/dateUtils';
+import { PRODUCTS } from '@/utils/constants';
 
 interface OrderFormDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ export function OrderFormDialog({
   order,
 }: OrderFormDialogProps) {
   const [formData, setFormData] = useState<OrderFormData>({
+    productType: 'standard',
     orderNumber: '',
     customerName: '',
     deliveryDate: formatDateISO(new Date()),
@@ -42,6 +44,7 @@ export function OrderFormDialog({
   useEffect(() => {
     if (order) {
       setFormData({
+        productType: order.productType,
         orderNumber: order.orderNumber,
         customerName: order.customerName,
         deliveryDate: order.deliveryDate,
@@ -52,6 +55,7 @@ export function OrderFormDialog({
     } else {
       // 新規作成の場合はリセット
       setFormData({
+        productType: 'standard',
         orderNumber: '',
         customerName: '',
         deliveryDate: formatDateISO(new Date()),
@@ -111,6 +115,26 @@ export function OrderFormDialog({
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {/* 製品タイプ選択 */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="productType" className="text-right">
+                製品タイプ <span className="text-destructive">*</span>
+              </Label>
+              <select
+                id="productType"
+                value={formData.productType}
+                onChange={(e) => handleChange('productType', e.target.value as ProductType)}
+                className="col-span-3 flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                required
+              >
+                {PRODUCTS.map((product) => (
+                  <option key={product.id} value={product.id}>
+                    {product.name} - {product.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="orderNumber" className="text-right">
                 受注番号 <span className="text-destructive">*</span>
