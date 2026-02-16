@@ -2,10 +2,14 @@
  * 拠点別在庫データの型定義
  */
 export interface LocationInventory {
-  body: number;                  // カット済みボディ在庫
-  bottom: number;                // カット済み底在庫
-  lid: number;                   // カット済み蓋在庫
-  rolls: number;                 // ロール在庫本数
+  body: number;                  // カット済みボディ在庫（既存製品）
+  bottom: number;                // カット済み底在庫（既存製品）
+  lid: number;                   // カット済み蓋在庫（既存製品）
+  rolls: number;                 // ロール在庫本数（既存製品）
+  pailBody: number;              // カット済みボディ在庫（ペール）
+  pailBottom: number;            // カット済み底在庫（ペール）
+  pailLid: number;               // カット済み蓋在庫（ペール）
+  pailRolls: number;             // ロール在庫本数（ペール）
 }
 
 /**
@@ -26,7 +30,7 @@ export type LocationType = 'office' | 'sugisaki' | 'manufacturer';
 /**
  * アイテムタイプ
  */
-export type ItemType = 'body' | 'bottom' | 'lid' | 'rolls';
+export type ItemType = 'body' | 'bottom' | 'lid' | 'rolls' | 'pailBody' | 'pailBottom' | 'pailLid' | 'pailRolls';
 
 /**
  * 拠点情報
@@ -138,5 +142,9 @@ export function getTotalInventory(inventory: Inventory): LocationInventory {
     bottom: inventory.office.bottom + inventory.sugisaki.bottom + inventory.manufacturer.bottom,
     lid: inventory.office.lid + inventory.sugisaki.lid + inventory.manufacturer.lid,
     rolls: inventory.office.rolls + inventory.sugisaki.rolls + inventory.manufacturer.rolls,
+    pailBody: inventory.office.pailBody + inventory.sugisaki.pailBody + inventory.manufacturer.pailBody,
+    pailBottom: inventory.office.pailBottom + inventory.sugisaki.pailBottom + inventory.manufacturer.pailBottom,
+    pailLid: inventory.office.pailLid + inventory.sugisaki.pailLid + inventory.manufacturer.pailLid,
+    pailRolls: inventory.office.pailRolls + inventory.sugisaki.pailRolls + inventory.manufacturer.pailRolls,
   };
 }

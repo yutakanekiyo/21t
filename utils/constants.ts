@@ -1,7 +1,7 @@
-import { RollConversionConfig, Inventory, LocationInfo, LocationInventory } from '@/types';
+import { RollConversionConfig, Inventory, LocationInfo, LocationInventory, ProductType } from '@/types';
 
 /**
- * デフォルトのロール換算設定
+ * デフォルトのロール換算設定（既存製品）
  *
  * 重要：底と蓋は同じロール材（幅1000mm × 長さ200m）から切り出される
  * - ロール長さ：200m
@@ -16,6 +16,48 @@ export const DEFAULT_ROLL_CONFIG: RollConversionConfig = {
   lidCutLength: 610,            // 蓋の切り出し長さ（mm）
   averageCutLength: 0.66,       // 平均切り出し長さ（m）
 };
+
+/**
+ * ペール製品のロール換算設定
+ *
+ * ペール専用の歩留まりロジック：
+ * - ボディ: 10ロール（メーカー在庫）→ 約3,700枚
+ * - 底・蓋: 1ロール（200m）から、底（305mm）と蓋（330mm）をセットで約630個
+ */
+export const PAIL_ROLL_CONFIG: RollConversionConfig = {
+  rollLength: 200,              // ロール長さ（m）
+  piecesPerMeter: 3.15,         // 1mあたり3.15枚（計算: 630 ÷ 200）
+  piecesPerRoll: 630,           // 1本あたり630セット（底+蓋）
+  bottomCutLength: 305,         // 底の切り出し長さ（mm）
+  lidCutLength: 330,            // 蓋の切り出し長さ（mm）
+  averageCutLength: 0.318,      // 平均切り出し長さ（m）約318mm
+};
+
+/**
+ * ペールボディの換算設定
+ * ボディ: 10ロール → 約3,700枚
+ */
+export const PAIL_BODY_CONFIG = {
+  rollsPerProduction: 10,       // 1回の生産に必要なロール数
+  piecesPerProduction: 3700,    // 10ロールから算出される枚数
+  piecesPerRoll: 370,           // 1ロールあたりの平均枚数
+};
+
+/**
+ * 製品情報
+ */
+export const PRODUCTS = [
+  {
+    id: 'standard' as ProductType,
+    name: '既存製品',
+    description: 'ボディ・底・蓋のセット製品',
+  },
+  {
+    id: 'pail' as ProductType,
+    name: 'ペール',
+    description: 'ペール缶用の製品',
+  },
+];
 
 /**
  * LocalStorageのキー名
@@ -55,6 +97,10 @@ export const DEFAULT_LOCATION_INVENTORY: LocationInventory = {
   bottom: 0,
   lid: 0,
   rolls: 0,
+  pailBody: 0,
+  pailBottom: 0,
+  pailLid: 0,
+  pailRolls: 0,
 };
 
 /**

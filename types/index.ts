@@ -1,4 +1,4 @@
-export type { Order, OrderFormData } from './order';
+export type { Order, OrderFormData, ProductType } from './order';
 export type {
   Inventory,
   LocationInventory,

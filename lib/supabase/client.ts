@@ -35,14 +35,26 @@ export interface Database {
           office_bottom: number;
           office_lid: number;
           office_rolls: number;
+          office_pail_body: number;
+          office_pail_bottom: number;
+          office_pail_lid: number;
+          office_pail_rolls: number;
           sugisaki_body: number;
           sugisaki_bottom: number;
           sugisaki_lid: number;
           sugisaki_rolls: number;
+          sugisaki_pail_body: number;
+          sugisaki_pail_bottom: number;
+          sugisaki_pail_lid: number;
+          sugisaki_pail_rolls: number;
           manufacturer_body: number;
           manufacturer_bottom: number;
           manufacturer_lid: number;
           manufacturer_rolls: number;
+          manufacturer_pail_body: number;
+          manufacturer_pail_bottom: number;
+          manufacturer_pail_lid: number;
+          manufacturer_pail_rolls: number;
           last_updated: string;
         };
         Insert: {
@@ -52,14 +64,26 @@ export interface Database {
           office_bottom?: number;
           office_lid?: number;
           office_rolls?: number;
+          office_pail_body?: number;
+          office_pail_bottom?: number;
+          office_pail_lid?: number;
+          office_pail_rolls?: number;
           sugisaki_body?: number;
           sugisaki_bottom?: number;
           sugisaki_lid?: number;
           sugisaki_rolls?: number;
+          sugisaki_pail_body?: number;
+          sugisaki_pail_bottom?: number;
+          sugisaki_pail_lid?: number;
+          sugisaki_pail_rolls?: number;
           manufacturer_body?: number;
           manufacturer_bottom?: number;
           manufacturer_lid?: number;
           manufacturer_rolls?: number;
+          manufacturer_pail_body?: number;
+          manufacturer_pail_bottom?: number;
+          manufacturer_pail_lid?: number;
+          manufacturer_pail_rolls?: number;
           last_updated?: string;
         };
         Update: {
@@ -69,14 +93,26 @@ export interface Database {
           office_bottom?: number;
           office_lid?: number;
           office_rolls?: number;
+          office_pail_body?: number;
+          office_pail_bottom?: number;
+          office_pail_lid?: number;
+          office_pail_rolls?: number;
           sugisaki_body?: number;
           sugisaki_bottom?: number;
           sugisaki_lid?: number;
           sugisaki_rolls?: number;
+          sugisaki_pail_body?: number;
+          sugisaki_pail_bottom?: number;
+          sugisaki_pail_lid?: number;
+          sugisaki_pail_rolls?: number;
           manufacturer_body?: number;
           manufacturer_bottom?: number;
           manufacturer_lid?: number;
           manufacturer_rolls?: number;
+          manufacturer_pail_body?: number;
+          manufacturer_pail_bottom?: number;
+          manufacturer_pail_lid?: number;
+          manufacturer_pail_rolls?: number;
           last_updated?: string;
         };
       };
@@ -116,6 +152,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          product_type: string;
           order_number: string;
           customer_name: string;
           delivery_date: string;
@@ -128,6 +165,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
+          product_type?: string;
           order_number: string;
           customer_name: string;
           delivery_date: string;
@@ -140,6 +178,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
+          product_type?: string;
           order_number?: string;
           customer_name?: string;
           delivery_date?: string;

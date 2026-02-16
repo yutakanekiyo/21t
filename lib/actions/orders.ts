@@ -28,6 +28,7 @@ export async function getOrders(): Promise<Order[]> {
   return (
     data?.map((row) => ({
       id: row.id,
+      productType: (row.product_type || 'standard') as 'standard' | 'pail',
       orderNumber: row.order_number,
       customerName: row.customer_name,
       deliveryDate: row.delivery_date,
@@ -53,6 +54,7 @@ export async function addOrder(formData: OrderFormData): Promise<void> {
 
   const { error } = await supabase.from("orders").insert({
     user_id: userId,
+    product_type: formData.productType,
     order_number: formData.orderNumber,
     customer_name: formData.customerName,
     delivery_date: formData.deliveryDate,
@@ -85,6 +87,7 @@ export async function updateOrder(
   const { error } = await supabase
     .from("orders")
     .update({
+      product_type: formData.productType,
       order_number: formData.orderNumber,
       customer_name: formData.customerName,
       delivery_date: formData.deliveryDate,
