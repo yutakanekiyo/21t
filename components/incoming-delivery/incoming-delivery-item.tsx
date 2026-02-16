@@ -5,6 +5,7 @@ import { IncomingDelivery } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Check, Trash2, Calendar, MapPin, Package } from "lucide-react";
 import { formatDate } from "@/utils/dateUtils";
 import { LOCATIONS } from "@/utils/constants";
@@ -43,6 +44,8 @@ const ITEM_TYPE_UNITS: Record<string, string> = {
 export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const locationInfo = LOCATIONS.find((loc) => loc.id === delivery.location);
 
   // 納期が過ぎているかチェック
@@ -52,11 +55,18 @@ export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
   scheduledDate.setHours(0, 0, 0, 0);
   const isOverdue = scheduledDate < today && delivery.status === "pending";
 
-  const handleComplete = () => {
-    if (!window.confirm("この入荷予定を完了しますか？\n指定拠点の在庫に加算されます。")) {
-      return;
-    }
+  const handleCompleteClick = () => {
+    console.log("Complete button clicked for delivery:", delivery.id);
+    setShowCompleteDialog(true);
+  };
 
+  const handleDeleteClick = () => {
+    console.log("Delete button clicked for delivery:", delivery.id);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmComplete = () => {
+    console.log("User confirmed completion, starting transition");
     startTransition(async () => {
       try {
         console.log("入荷完了処理開始:", delivery.id);
@@ -76,11 +86,8 @@ export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
     });
   };
 
-  const handleDelete = () => {
-    if (!window.confirm("この入荷予定を削除しますか？")) {
-      return;
-    }
-
+  const handleConfirmDelete = () => {
+    console.log("User confirmed deletion, starting transition");
     startTransition(async () => {
       try {
         await deleteIncomingDelivery(delivery.id);
@@ -151,7 +158,7 @@ export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
               <Button
                 variant="default"
                 size="sm"
-                onClick={handleComplete}
+                onClick={handleCompleteClick}
                 disabled={isPending}
               >
                 <Check className="h-4 w-4 mr-1" />
@@ -160,7 +167,7 @@ export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 disabled={isPending}
               >
                 <Trash2 className="h-4 w-4" />
@@ -175,6 +182,30 @@ export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
           )}
         </div>
       </CardContent>
+
+      {/* 完了確認ダイアログ */}
+      <ConfirmDialog
+        open={showCompleteDialog}
+        onOpenChange={setShowCompleteDialog}
+        onConfirm={handleConfirmComplete}
+        title="入荷完了"
+        description="この入荷予定を完了しますか？指定拠点の在庫に加算されます。"
+        confirmText="完了する"
+        cancelText="キャンセル"
+        variant="default"
+      />
+
+      {/* 削除確認ダイアログ */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleConfirmDelete}
+        title="入荷予定を削除"
+        description="この入荷予定を削除しますか？この操作は取り消せません。"
+        confirmText="削除する"
+        cancelText="キャンセル"
+        variant="destructive"
+      />
     </Card>
   );
 }
