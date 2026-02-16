@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useOptimistic, useTransition } from "react";
-import { Order, Inventory, OrderFormData } from "@/types";
+import { Order, Inventory, OrderFormData, IncomingDelivery } from "@/types";
 import { MultiLocationInventoryPanel } from "@/components/inventory/multi-location-inventory-panel";
 import { OrderList } from "./order-list";
 import { InventoryAlert } from "./inventory-alert";
+import { IncomingDeliveryPanel } from "@/components/incoming-delivery/incoming-delivery-panel";
 import { calculateInventorySnapshots, getInventorySummary } from "@/utils/calculations";
 import { DEFAULT_ROLL_CONFIG } from "@/utils/constants";
 import { addOrder, updateOrder, deleteOrder } from "@/lib/actions/orders";
@@ -13,11 +14,17 @@ import { updateInventory } from "@/lib/actions/inventory";
 interface DashboardProps {
   initialOrders: Order[];
   initialInventory: Inventory;
+  initialIncomingDeliveries: IncomingDelivery[];
 }
 
-export function Dashboard({ initialOrders, initialInventory }: DashboardProps) {
+export function Dashboard({
+  initialOrders,
+  initialInventory,
+  initialIncomingDeliveries
+}: DashboardProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [inventory, setInventory] = useState(initialInventory);
+  const [incomingDeliveries, setIncomingDeliveries] = useState(initialIncomingDeliveries);
   const [isPending, startTransition] = useTransition();
 
   // 在庫計算
@@ -107,6 +114,9 @@ export function Dashboard({ initialOrders, initialInventory }: DashboardProps) {
     <div className="space-y-6">
       {/* 在庫パネル（複数拠点対応） */}
       <MultiLocationInventoryPanel inventory={inventory} onUpdate={handleUpdateInventory} />
+
+      {/* 入荷予定パネル */}
+      <IncomingDeliveryPanel deliveries={incomingDeliveries} />
 
       {/* 在庫不足アラート */}
       <InventoryAlert summary={summary} />

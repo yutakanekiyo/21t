@@ -148,6 +148,47 @@ export interface Database {
           created_at?: string;
         };
       };
+      incoming_deliveries: {
+        Row: {
+          id: string;
+          user_id: string;
+          location: string;
+          item_type: string;
+          quantity: number;
+          scheduled_date: string;
+          status: string;
+          completed_at: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          location: string;
+          item_type: string;
+          quantity: number;
+          scheduled_date: string;
+          status?: string;
+          completed_at?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          location?: string;
+          item_type?: string;
+          quantity?: number;
+          scheduled_date?: string;
+          status?: string;
+          completed_at?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       orders: {
         Row: {
           id: string;

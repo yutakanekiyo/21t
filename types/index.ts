@@ -12,3 +12,8 @@ export type {
   InventorySummary
 } from './inventory';
 export { getTotalInventory } from './inventory';
+export type {
+  IncomingDelivery,
+  IncomingDeliveryFormData,
+  IncomingDeliveryStatus
+} from './incoming-delivery';
