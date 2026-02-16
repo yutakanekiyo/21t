@@ -186,9 +186,17 @@ export function OrderFormDialog({
                 type="number"
                 min="0"
                 value={formData.setQuantity}
-                onChange={(e) =>
-                  handleChange('setQuantity', parseInt(e.target.value) || 0)
-                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleChange('setQuantity', 0);
+                  } else {
+                    const num = parseInt(value);
+                    if (!isNaN(num)) {
+                      handleChange('setQuantity', num);
+                    }
+                  }
+                }}
                 onFocus={(e) => e.target.select()}
                 className="col-span-3"
                 placeholder="ボディ・底・蓋各1のセット数"
@@ -205,9 +213,17 @@ export function OrderFormDialog({
                 type="number"
                 min="0"
                 value={formData.additionalLids}
-                onChange={(e) =>
-                  handleChange('additionalLids', parseInt(e.target.value) || 0)
-                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    handleChange('additionalLids', 0);
+                  } else {
+                    const num = parseInt(value);
+                    if (!isNaN(num)) {
+                      handleChange('additionalLids', num);
+                    }
+                  }
+                }}
                 onFocus={(e) => e.target.select()}
                 className="col-span-3"
                 placeholder="蓋のみ追加する場合"
