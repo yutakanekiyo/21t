@@ -5,7 +5,7 @@ import { IncomingDelivery } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { generateCalendarDays, getMonthName, WEEKDAY_NAMES } from "@/utils/calendarUtils";
+import { generateCalendarDays, getMonthName, WEEKDAY_NAMES, formatDateToYYYYMMDD } from "@/utils/calendarUtils";
 import { IncomingDeliveryItem } from "./incoming-delivery-item";
 
 interface IncomingDeliveryCalendarProps {
@@ -66,7 +66,7 @@ export function IncomingDeliveryCalendar({
 
   // 選択された日付の入荷予定
   const selectedDateKey = selectedDate
-    ? selectedDate.toISOString().split("T")[0]
+    ? formatDateToYYYYMMDD(selectedDate)
     : null;
   const selectedDeliveries = selectedDateKey
     ? deliveriesByDate.get(selectedDateKey) || []
@@ -111,7 +111,7 @@ export function IncomingDeliveryCalendar({
         {/* 日付セル */}
         <div className="grid grid-cols-7">
           {calendarDays.map((day, index) => {
-            const dateKey = day.date.toISOString().split("T")[0];
+            const dateKey = formatDateToYYYYMMDD(day.date);
             const dayDeliveries = deliveriesByDate.get(dateKey) || [];
             const hasDeliveries = dayDeliveries.length > 0;
             const hasOverdue = dayDeliveries.some(
