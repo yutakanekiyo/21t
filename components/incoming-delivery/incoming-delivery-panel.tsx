@@ -4,9 +4,10 @@ import { useState } from "react";
 import { IncomingDelivery } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TruckIcon } from "lucide-react";
+import { Plus, TruckIcon, Calendar, List } from "lucide-react";
 import { IncomingDeliveryItem } from "./incoming-delivery-item";
 import { IncomingDeliveryFormDialog } from "./incoming-delivery-form-dialog";
+import { IncomingDeliveryCalendar } from "./incoming-delivery-calendar";
 
 interface IncomingDeliveryPanelProps {
   deliveries: IncomingDelivery[];
@@ -16,6 +17,7 @@ export function IncomingDeliveryPanel({
   deliveries,
 }: IncomingDeliveryPanelProps) {
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar'); // デフォルトはカレンダー表示
 
   // 入荷待ちのみフィルタ
   const pendingDeliveries = deliveries.filter((d) => d.status === "pending");
@@ -35,53 +37,79 @@ export function IncomingDeliveryPanel({
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="flex items-center gap-2">
             <TruckIcon className="h-6 w-6" />
-            入荷予定（入荷待ち）
+            入荷予定
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsFormDialogOpen(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            入荷予定を追加
-          </Button>
+          <div className="flex gap-2">
+            {/* 表示切り替えボタン */}
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4 mr-1" />
+              リスト
+            </Button>
+            <Button
+              variant={viewMode === 'calendar' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('calendar')}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              カレンダー
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsFormDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              入荷予定を追加
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {/* サマリー */}
-          <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-muted rounded-md">
-            <div>
-              <p className="text-sm text-muted-foreground">入荷待ち件数</p>
-              <p className="text-2xl font-bold">
-                {pendingDeliveries.length}件
-              </p>
-            </div>
-            {overdueCount > 0 && (
-              <div>
-                <p className="text-sm text-muted-foreground">納期超過</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {overdueCount}件
-                </p>
+          {viewMode === 'list' ? (
+            <>
+              {/* サマリー */}
+              <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-muted rounded-md">
+                <div>
+                  <p className="text-sm text-muted-foreground">入荷待ち件数</p>
+                  <p className="text-2xl font-bold">
+                    {pendingDeliveries.length}件
+                  </p>
+                </div>
+                {overdueCount > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">納期超過</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {overdueCount}件
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* 入荷待ち一覧 */}
-          {pendingDeliveries.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>入荷待ちの予定はありません</p>
-              <p className="text-sm mt-2">
-                「入荷予定を追加」ボタンから登録してください
-              </p>
-            </div>
+              {/* 入荷待ち一覧 */}
+              {pendingDeliveries.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>入荷待ちの予定はありません</p>
+                  <p className="text-sm mt-2">
+                    「入荷予定を追加」ボタンから登録してください
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingDeliveries.map((delivery) => (
+                    <IncomingDeliveryItem
+                      key={delivery.id}
+                      delivery={delivery}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
-            <div className="space-y-3">
-              {pendingDeliveries.map((delivery) => (
-                <IncomingDeliveryItem
-                  key={delivery.id}
-                  delivery={delivery}
-                />
-              ))}
-            </div>
+            /* カレンダー表示 */
+            <IncomingDeliveryCalendar deliveries={pendingDeliveries} />
           )}
         </CardContent>
       </Card>
