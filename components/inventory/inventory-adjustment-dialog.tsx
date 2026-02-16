@@ -15,6 +15,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LOCATIONS } from "@/utils/constants";
 
+type ProductTypeTab = 'standard' | 'pail';
+
 interface InventoryAdjustmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +35,10 @@ export function InventoryAdjustmentDialog({
     sugisaki: { ...inventory.sugisaki },
     manufacturer: { ...inventory.manufacturer },
   });
+
+  // 選択された拠点と製品タイプ
+  const [selectedLocation, setSelectedLocation] = useState<LocationType>('office');
+  const [selectedProductType, setSelectedProductType] = useState<ProductTypeTab>('standard');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,130 +67,156 @@ export function InventoryAdjustmentDialog({
           <DialogHeader>
             <DialogTitle>在庫調整</DialogTitle>
             <DialogDescription>
-              各拠点の在庫数を直接入力して調整できます
+              拠点と製品タイプを選択して、在庫数を直接入力できます
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-6 py-4">
-            {LOCATIONS.map((location) => (
-              <div key={location.id} className="space-y-3">
-                <div className="font-semibold text-lg border-b pb-2">
-                  {location.name}
-                </div>
-
-                {/* 既存製品 */}
-                <div className="text-sm font-medium text-muted-foreground">既存製品</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor={`${location.id}-body`}>ボディ（個）</Label>
-                    <Input
-                      id={`${location.id}-body`}
-                      type="number"
-                      min="0"
-                      value={formData[location.id].body}
-                      onChange={(e) =>
-                        handleChange(location.id, "body", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`${location.id}-bottom`}>底（枚）</Label>
-                    <Input
-                      id={`${location.id}-bottom`}
-                      type="number"
-                      min="0"
-                      value={formData[location.id].bottom}
-                      onChange={(e) =>
-                        handleChange(location.id, "bottom", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`${location.id}-lid`}>蓋（枚）</Label>
-                    <Input
-                      id={`${location.id}-lid`}
-                      type="number"
-                      min="0"
-                      value={formData[location.id].lid}
-                      onChange={(e) =>
-                        handleChange(location.id, "lid", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`${location.id}-rolls`}>ロール（本）</Label>
-                    <Input
-                      id={`${location.id}-rolls`}
-                      type="number"
-                      min="0"
-                      value={formData[location.id].rolls}
-                      onChange={(e) =>
-                        handleChange(location.id, "rolls", e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* ペール製品 */}
-                <div className="text-sm font-medium text-muted-foreground mt-4">ペール製品</div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor={`${location.id}-pailBody`}>ボディ（個）</Label>
-                    <Input
-                      id={`${location.id}-pailBody`}
-                      type="number"
-                      min="0"
-                      value={formData[location.id].pailBody}
-                      onChange={(e) =>
-                        handleChange(location.id, "pailBody", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`${location.id}-pailBottom`}>底（枚）</Label>
-                    <Input
-                      id={`${location.id}-pailBottom`}
-                      type="number"
-                      min="0"
-                      value={formData[location.id].pailBottom}
-                      onChange={(e) =>
-                        handleChange(location.id, "pailBottom", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`${location.id}-pailLid`}>蓋（枚）</Label>
-                    <Input
-                      id={`${location.id}-pailLid`}
-                      type="number"
-                      min="0"
-                      value={formData[location.id].pailLid}
-                      onChange={(e) =>
-                        handleChange(location.id, "pailLid", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`${location.id}-pailRolls`}>ロール（本）</Label>
-                    <Input
-                      id={`${location.id}-pailRolls`}
-                      type="number"
-                      min="0"
-                      value={formData[location.id].pailRolls}
-                      onChange={(e) =>
-                        handleChange(location.id, "pailRolls", e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
+          <div className="space-y-4 py-4">
+            {/* 拠点選択タブ */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">拠点を選択</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {LOCATIONS.map((location) => (
+                  <button
+                    key={location.id}
+                    type="button"
+                    onClick={() => setSelectedLocation(location.id)}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      selectedLocation === location.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted hover:bg-muted/80'
+                    }`}
+                  >
+                    {location.name}
+                  </button>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* 製品タイプ選択タブ */}
+            <div>
+              <Label className="text-sm font-medium mb-2 block">製品タイプを選択</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedProductType('standard')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    selectedProductType === 'standard'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  既存製品
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedProductType('pail')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    selectedProductType === 'pail'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted hover:bg-muted/80'
+                  }`}
+                >
+                  ペール製品
+                </button>
+              </div>
+            </div>
+
+            {/* 選択された拠点と製品タイプの在庫入力フィールド */}
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <div className="text-sm font-medium mb-3">
+                {LOCATIONS.find(l => l.id === selectedLocation)?.name} - {selectedProductType === 'standard' ? '既存製品' : 'ペール製品'}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {selectedProductType === 'standard' ? (
+                  <>
+                    <div>
+                      <Label htmlFor="body">ボディ（個）</Label>
+                      <Input
+                        id="body"
+                        type="number"
+                        min="0"
+                        value={formData[selectedLocation].body}
+                        onChange={(e) => handleChange(selectedLocation, "body", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="bottom">底（枚）</Label>
+                      <Input
+                        id="bottom"
+                        type="number"
+                        min="0"
+                        value={formData[selectedLocation].bottom}
+                        onChange={(e) => handleChange(selectedLocation, "bottom", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lid">蓋（枚）</Label>
+                      <Input
+                        id="lid"
+                        type="number"
+                        min="0"
+                        value={formData[selectedLocation].lid}
+                        onChange={(e) => handleChange(selectedLocation, "lid", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rolls">ロール（本）</Label>
+                      <Input
+                        id="rolls"
+                        type="number"
+                        min="0"
+                        value={formData[selectedLocation].rolls}
+                        onChange={(e) => handleChange(selectedLocation, "rolls", e.target.value)}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="pailBody">ボディ（個）</Label>
+                      <Input
+                        id="pailBody"
+                        type="number"
+                        min="0"
+                        value={formData[selectedLocation].pailBody}
+                        onChange={(e) => handleChange(selectedLocation, "pailBody", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pailBottom">底（枚）</Label>
+                      <Input
+                        id="pailBottom"
+                        type="number"
+                        min="0"
+                        value={formData[selectedLocation].pailBottom}
+                        onChange={(e) => handleChange(selectedLocation, "pailBottom", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pailLid">蓋（枚）</Label>
+                      <Input
+                        id="pailLid"
+                        type="number"
+                        min="0"
+                        value={formData[selectedLocation].pailLid}
+                        onChange={(e) => handleChange(selectedLocation, "pailLid", e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pailRolls">ロール（本）</Label>
+                      <Input
+                        id="pailRolls"
+                        type="number"
+                        min="0"
+                        value={formData[selectedLocation].pailRolls}
+                        onChange={(e) => handleChange(selectedLocation, "pailRolls", e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
