@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Order, InventorySnapshot, OrderStatus } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Edit, Trash2, Check, Archive, RotateCcw } from "lucide-react";
 import { formatDate } from "@/utils/dateUtils";
 
@@ -16,29 +18,20 @@ interface OrderItemProps {
 }
 
 export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }: OrderItemProps) {
-  const handleDelete = () => {
-    if (window.confirm(`受注番号 ${order.orderNumber} を削除しますか？`)) {
-      onDelete(order.id);
-    }
-  };
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showReactivateDialog, setShowReactivateDialog] = useState(false);
 
-  const handleComplete = () => {
-    if (onUpdateStatus && window.confirm(`受注番号 ${order.orderNumber} を完了にしますか？`)) {
-      onUpdateStatus(order.id, 'completed');
-    }
-  };
+  const handleDeleteClick = () => setShowDeleteDialog(true);
+  const handleCompleteClick = () => setShowCompleteDialog(true);
+  const handleArchiveClick = () => setShowArchiveDialog(true);
+  const handleReactivateClick = () => setShowReactivateDialog(true);
 
-  const handleArchive = () => {
-    if (onUpdateStatus && window.confirm(`受注番号 ${order.orderNumber} をアーカイブしますか？`)) {
-      onUpdateStatus(order.id, 'archived');
-    }
-  };
-
-  const handleReactivate = () => {
-    if (onUpdateStatus && window.confirm(`受注番号 ${order.orderNumber} を進行中に戻しますか？`)) {
-      onUpdateStatus(order.id, 'active');
-    }
-  };
+  const handleConfirmDelete = () => onDelete(order.id);
+  const handleConfirmComplete = () => onUpdateStatus?.(order.id, 'completed');
+  const handleConfirmArchive = () => onUpdateStatus?.(order.id, 'archived');
+  const handleConfirmReactivate = () => onUpdateStatus?.(order.id, 'active');
 
   return (
     <Card>
@@ -81,7 +74,7 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleComplete}
+                  onClick={handleCompleteClick}
                   className="text-green-600 hover:text-green-700"
                 >
                   <Check className="h-4 w-4 mr-1" />
@@ -90,7 +83,7 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleArchive}
+                  onClick={handleArchiveClick}
                 >
                   <Archive className="h-4 w-4 mr-1" />
                   アーカイブ
@@ -101,7 +94,7 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleReactivate}
+                onClick={handleReactivateClick}
               >
                 <RotateCcw className="h-4 w-4 mr-1" />
                 進行中に戻す
@@ -118,7 +111,7 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
             <Button
               variant="outline"
               size="sm"
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -173,6 +166,54 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
           </div>
         )}
       </CardContent>
+
+      {/* 完了確認ダイアログ */}
+      <ConfirmDialog
+        open={showCompleteDialog}
+        onOpenChange={setShowCompleteDialog}
+        onConfirm={handleConfirmComplete}
+        title="受注を完了"
+        description={`受注番号 ${order.orderNumber} を完了にしますか？`}
+        confirmText="完了する"
+        cancelText="キャンセル"
+        variant="default"
+      />
+
+      {/* アーカイブ確認ダイアログ */}
+      <ConfirmDialog
+        open={showArchiveDialog}
+        onOpenChange={setShowArchiveDialog}
+        onConfirm={handleConfirmArchive}
+        title="受注をアーカイブ"
+        description={`受注番号 ${order.orderNumber} をアーカイブしますか？`}
+        confirmText="アーカイブする"
+        cancelText="キャンセル"
+        variant="default"
+      />
+
+      {/* 再開確認ダイアログ */}
+      <ConfirmDialog
+        open={showReactivateDialog}
+        onOpenChange={setShowReactivateDialog}
+        onConfirm={handleConfirmReactivate}
+        title="受注を進行中に戻す"
+        description={`受注番号 ${order.orderNumber} を進行中に戻しますか？`}
+        confirmText="進行中に戻す"
+        cancelText="キャンセル"
+        variant="default"
+      />
+
+      {/* 削除確認ダイアログ */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleConfirmDelete}
+        title="受注を削除"
+        description={`受注番号 ${order.orderNumber} を削除しますか？この操作は取り消せません。`}
+        confirmText="削除する"
+        cancelText="キャンセル"
+        variant="destructive"
+      />
     </Card>
   );
 }
