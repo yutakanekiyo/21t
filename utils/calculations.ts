@@ -1,4 +1,4 @@
-import { Order, Inventory, InventorySnapshot, InventorySummary, RollConversionConfig } from '@/types';
+import { Order, Inventory, InventorySnapshot, InventorySummary, RollConversionConfig, getTotalInventory } from '@/types';
 import { compareDates } from './dateUtils';
 
 /**
@@ -23,11 +23,12 @@ export function calculateInventorySnapshots(
     return compareDates(a.createdAt, b.createdAt);
   });
 
-  // 2. 初期在庫をセット
-  let currentBody = currentInventory.body;
-  let currentBottom = currentInventory.bottom;
-  let currentLid = currentInventory.lid;
-  let currentRolls = currentInventory.rolls;
+  // 2. 初期在庫をセット（全拠点の合計）
+  const totalInventory = getTotalInventory(currentInventory);
+  let currentBody = totalInventory.body;
+  let currentBottom = totalInventory.bottom;
+  let currentLid = totalInventory.lid;
+  let currentRolls = totalInventory.rolls;
 
   // 3. スナップショット配列を初期化
   const snapshots: InventorySnapshot[] = [];

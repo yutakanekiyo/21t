@@ -31,29 +31,85 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          body: number;
-          bottom: number;
-          lid: number;
-          rolls: number;
+          office_body: number;
+          office_bottom: number;
+          office_lid: number;
+          office_rolls: number;
+          sugisaki_body: number;
+          sugisaki_bottom: number;
+          sugisaki_lid: number;
+          sugisaki_rolls: number;
+          manufacturer_body: number;
+          manufacturer_bottom: number;
+          manufacturer_lid: number;
+          manufacturer_rolls: number;
           last_updated: string;
         };
         Insert: {
           id?: string;
           user_id: string;
-          body?: number;
-          bottom?: number;
-          lid?: number;
-          rolls?: number;
+          office_body?: number;
+          office_bottom?: number;
+          office_lid?: number;
+          office_rolls?: number;
+          sugisaki_body?: number;
+          sugisaki_bottom?: number;
+          sugisaki_lid?: number;
+          sugisaki_rolls?: number;
+          manufacturer_body?: number;
+          manufacturer_bottom?: number;
+          manufacturer_lid?: number;
+          manufacturer_rolls?: number;
           last_updated?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
-          body?: number;
-          bottom?: number;
-          lid?: number;
-          rolls?: number;
+          office_body?: number;
+          office_bottom?: number;
+          office_lid?: number;
+          office_rolls?: number;
+          sugisaki_body?: number;
+          sugisaki_bottom?: number;
+          sugisaki_lid?: number;
+          sugisaki_rolls?: number;
+          manufacturer_body?: number;
+          manufacturer_bottom?: number;
+          manufacturer_lid?: number;
+          manufacturer_rolls?: number;
           last_updated?: string;
+        };
+      };
+      inventory_transfers: {
+        Row: {
+          id: string;
+          user_id: string;
+          from_location: string;
+          to_location: string;
+          item_type: string;
+          quantity: number;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          from_location: string;
+          to_location: string;
+          item_type: string;
+          quantity: number;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          from_location?: string;
+          to_location?: string;
+          item_type?: string;
+          quantity?: number;
+          notes?: string | null;
+          created_at?: string;
         };
       };
       orders: {

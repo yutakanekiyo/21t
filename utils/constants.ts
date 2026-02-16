@@ -1,4 +1,4 @@
-import { RollConversionConfig, Inventory } from '@/types';
+import { RollConversionConfig, Inventory, LocationInfo, LocationInventory } from '@/types';
 
 /**
  * デフォルトのロール換算設定
@@ -27,12 +27,42 @@ export const STORAGE_KEYS = {
 } as const;
 
 /**
- * デフォルトの在庫データ
+ * 拠点情報
  */
-export const DEFAULT_INVENTORY: Inventory = {
+export const LOCATIONS: LocationInfo[] = [
+  {
+    id: 'office',
+    name: '事務所',
+    description: '本社事務所の在庫',
+  },
+  {
+    id: 'sugisaki',
+    name: '杉崎（工場）',
+    description: '製造工場の在庫',
+  },
+  {
+    id: 'manufacturer',
+    name: 'メーカー（原材料）',
+    description: 'メーカー保管の原材料',
+  },
+];
+
+/**
+ * デフォルトの拠点別在庫データ
+ */
+export const DEFAULT_LOCATION_INVENTORY: LocationInventory = {
   body: 0,
   bottom: 0,
   lid: 0,
   rolls: 0,
+};
+
+/**
+ * デフォルトの在庫データ（複数拠点対応）
+ */
+export const DEFAULT_INVENTORY: Inventory = {
+  office: { ...DEFAULT_LOCATION_INVENTORY },
+  sugisaki: { ...DEFAULT_LOCATION_INVENTORY },
+  manufacturer: { ...DEFAULT_LOCATION_INVENTORY },
   lastUpdated: new Date().toISOString(),
 };

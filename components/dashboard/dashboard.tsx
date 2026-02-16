@@ -2,7 +2,7 @@
 
 import { useState, useOptimistic, useTransition } from "react";
 import { Order, Inventory, OrderFormData } from "@/types";
-import { InventoryPanel } from "@/components/inventory/inventory-panel";
+import { MultiLocationInventoryPanel } from "@/components/inventory/multi-location-inventory-panel";
 import { OrderList } from "./order-list";
 import { InventoryAlert } from "./inventory-alert";
 import { calculateInventorySnapshots, getInventorySummary } from "@/utils/calculations";
@@ -105,8 +105,8 @@ export function Dashboard({ initialOrders, initialInventory }: DashboardProps) {
 
   return (
     <div className="space-y-6">
-      {/* 在庫パネル */}
-      <InventoryPanel inventory={inventory} onUpdate={handleUpdateInventory} />
+      {/* 在庫パネル（複数拠点対応） */}
+      <MultiLocationInventoryPanel inventory={inventory} onUpdate={handleUpdateInventory} />
 
       {/* 在庫不足アラート */}
       <InventoryAlert summary={summary} />
