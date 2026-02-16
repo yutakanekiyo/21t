@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Inventory, LocationType, ItemType, InventoryTransferFormData } from "@/types";
 import {
   Dialog,
@@ -35,6 +36,7 @@ export function InventoryTransferDialog({
   onOpenChange,
   currentInventory,
 }: InventoryTransferDialogProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [formData, setFormData] = useState<InventoryTransferFormData>({
     fromLocation: "office",
@@ -71,8 +73,13 @@ export function InventoryTransferDialog({
 
     startTransition(async () => {
       try {
+        console.log("在庫移動開始:", formData);
         await createTransfer(formData);
-        onOpenChange(false);
+        console.log("在庫移動成功");
+
+        // 成功メッセージを表示
+        alert("在庫移動が完了しました");
+
         // フォームをリセット
         setFormData({
           fromLocation: "office",
@@ -81,9 +88,24 @@ export function InventoryTransferDialog({
           quantity: 0,
           notes: "",
         });
+
+        // ダイアログを閉じる
+        onOpenChange(false);
+
+        // Next.jsのルーターを使ってページをリフレッシュ
+        // これによりサーバーコンポーネントが再レンダリングされ、最新データが取得される
+        router.refresh();
+
+        // フォールバック: router.refresh()が効かない場合は強制リロード
+        setTimeout(() => {
+          // 念のため、500ms後に手動リロードを実行
+          // （通常はrouter.refresh()で十分なはず）
+          window.location.reload();
+        }, 500);
       } catch (error) {
         console.error("在庫移動エラー:", error);
-        alert("在庫移動に失敗しました");
+        const errorMessage = error instanceof Error ? error.message : "不明なエラー";
+        alert(`在庫移動に失敗しました: ${errorMessage}`);
       }
     });
   };

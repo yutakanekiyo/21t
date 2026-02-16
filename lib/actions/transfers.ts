@@ -55,6 +55,8 @@ export async function createTransfer(
     throw new Error("認証が必要です");
   }
 
+  console.log("createTransfer called:", { userId, formData });
+
   // バリデーション
   if (formData.fromLocation === formData.toLocation) {
     throw new Error("移動元と移動先が同じです");
@@ -66,6 +68,8 @@ export async function createTransfer(
 
   // 現在の在庫を取得
   const currentInventory = await getInventory();
+  console.log("Current inventory:", currentInventory);
+
   if (!currentInventory) {
     throw new Error("在庫データが見つかりません");
   }
@@ -95,8 +99,10 @@ export async function createTransfer(
 
   // トランザクション的に実行
   try {
+    console.log("Inserting transfer record...");
+
     // 在庫移動履歴を記録
-    const { error: transferError } = await supabase
+    const { data: transferData, error: transferError } = await supabase
       .from("inventory_transfers")
       .insert({
         user_id: userId,
@@ -106,18 +112,27 @@ export async function createTransfer(
         quantity: formData.quantity,
         notes: formData.notes || null,
         created_at: new Date().toISOString(),
-      });
+      })
+      .select();
 
     if (transferError) {
-      throw transferError;
+      console.error("Transfer insert error:", transferError);
+      throw new Error(`在庫移動履歴の記録に失敗: ${transferError.message}`);
     }
+
+    console.log("Transfer record created:", transferData);
+    console.log("Updating inventory...", updatedInventory);
 
     // 在庫を更新
     await updateInventory(updatedInventory);
 
+    console.log("Inventory updated successfully");
     revalidatePath("/dashboard");
   } catch (error) {
     console.error("在庫移動エラー:", error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("在庫移動に失敗しました");
   }
 }
