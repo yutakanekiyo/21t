@@ -16,11 +16,19 @@ export function LocationInventoryCard({
   const locationInfo = LOCATIONS.find((loc) => loc.id === locationType);
   const rollPieces = inventory.rolls * DEFAULT_ROLL_CONFIG.piecesPerRoll;
   const pailRollPieces = inventory.pailRolls * PAIL_ROLL_CONFIG.piecesPerRoll;
+  const isManufacturer = locationType === "manufacturer";
 
   return (
-    <Card>
+    <Card className={isManufacturer ? "border-2 border-orange-500 bg-orange-50/30" : ""}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">{locationInfo?.name}</CardTitle>
+        <CardTitle className={`text-lg ${isManufacturer ? "text-orange-900" : ""}`}>
+          {locationInfo?.name}
+          {isManufacturer && (
+            <span className="ml-2 text-xs font-normal text-orange-700">
+              （メーカー預け）
+            </span>
+          )}
+        </CardTitle>
         <p className="text-sm text-muted-foreground">
           {locationInfo?.description}
         </p>
@@ -50,7 +58,9 @@ export function LocationInventoryCard({
 
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">ロール</p>
-              <p className="text-2xl font-bold">{inventory.rolls.toLocaleString()}</p>
+              <p className={`text-2xl font-bold ${isManufacturer ? "text-orange-600" : ""}`}>
+                {inventory.rolls.toLocaleString()}
+              </p>
               <p className="text-xs text-muted-foreground">
                 本 ({rollPieces.toLocaleString()}枚)
               </p>
@@ -82,7 +92,9 @@ export function LocationInventoryCard({
 
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">ロール</p>
-              <p className="text-2xl font-bold">{inventory.pailRolls.toLocaleString()}</p>
+              <p className={`text-2xl font-bold ${isManufacturer ? "text-green-600" : ""}`}>
+                {inventory.pailRolls.toLocaleString()}
+              </p>
               <p className="text-xs text-muted-foreground">
                 本 ({pailRollPieces.toLocaleString()}セット)
               </p>

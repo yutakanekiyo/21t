@@ -3,7 +3,6 @@
 import { useState, useOptimistic, useTransition } from "react";
 import { Order, Inventory, OrderFormData, IncomingDelivery, OrderStatus } from "@/types";
 import { MultiLocationInventoryPanel } from "@/components/inventory/multi-location-inventory-panel";
-import { ManufacturerInventoryBanner } from "@/components/inventory/manufacturer-inventory-banner";
 import { OrderList } from "./order-list";
 import { InventoryAlert } from "./inventory-alert";
 import { IncomingDeliveryPanel } from "@/components/incoming-delivery/incoming-delivery-panel";
@@ -138,9 +137,6 @@ export function Dashboard({
 
   return (
     <div className="space-y-6">
-      {/* メーカー預け在庫バナー */}
-      <ManufacturerInventoryBanner inventory={inventory} />
-
       {/* 在庫パネル（複数拠点対応） */}
       <MultiLocationInventoryPanel inventory={inventory} onUpdate={handleUpdateInventory} />
 
