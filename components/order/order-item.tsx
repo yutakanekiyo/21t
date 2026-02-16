@@ -1,10 +1,10 @@
 "use client";
 
-import { Order, InventorySnapshot } from "@/types";
+import { Order, InventorySnapshot, OrderStatus } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, Check, Archive, RotateCcw } from "lucide-react";
 import { formatDate } from "@/utils/dateUtils";
 
 interface OrderItemProps {
@@ -12,12 +12,31 @@ interface OrderItemProps {
   snapshot: InventorySnapshot;
   onEdit: (order: Order) => void;
   onDelete: (orderId: string) => void;
+  onUpdateStatus?: (orderId: string, status: OrderStatus) => void;
 }
 
-export function OrderItem({ order, snapshot, onEdit, onDelete }: OrderItemProps) {
+export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }: OrderItemProps) {
   const handleDelete = () => {
     if (window.confirm(`受注番号 ${order.orderNumber} を削除しますか？`)) {
       onDelete(order.id);
+    }
+  };
+
+  const handleComplete = () => {
+    if (onUpdateStatus && window.confirm(`受注番号 ${order.orderNumber} を完了にしますか？`)) {
+      onUpdateStatus(order.id, 'completed');
+    }
+  };
+
+  const handleArchive = () => {
+    if (onUpdateStatus && window.confirm(`受注番号 ${order.orderNumber} をアーカイブしますか？`)) {
+      onUpdateStatus(order.id, 'archived');
+    }
+  };
+
+  const handleReactivate = () => {
+    if (onUpdateStatus && window.confirm(`受注番号 ${order.orderNumber} を進行中に戻しますか？`)) {
+      onUpdateStatus(order.id, 'active');
     }
   };
 
@@ -32,6 +51,17 @@ export function OrderItem({ order, snapshot, onEdit, onDelete }: OrderItemProps)
               <Badge variant={order.productType === 'pail' ? 'default' : 'secondary'}>
                 {order.productType === 'pail' ? 'ペール' : '既存製品'}
               </Badge>
+              {/* ステータスバッジ */}
+              {order.status === 'completed' && (
+                <Badge variant="default" className="bg-green-600">
+                  完了
+                </Badge>
+              )}
+              {order.status === 'archived' && (
+                <Badge variant="secondary">
+                  アーカイブ
+                </Badge>
+              )}
               {/* 在庫状況バッジ */}
               {snapshot.isAllSufficient ? (
                 <Badge variant="success">OK</Badge>
@@ -45,6 +75,39 @@ export function OrderItem({ order, snapshot, onEdit, onDelete }: OrderItemProps)
             </p>
           </div>
           <div className="flex gap-2">
+            {/* ステータス変更ボタン */}
+            {order.status === 'active' && onUpdateStatus && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleComplete}
+                  className="text-green-600 hover:text-green-700"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  完了
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleArchive}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  アーカイブ
+                </Button>
+              </>
+            )}
+            {(order.status === 'completed' || order.status === 'archived') && onUpdateStatus && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReactivate}
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                進行中に戻す
+              </Button>
+            )}
+            {/* 編集・削除ボタン */}
             <Button
               variant="outline"
               size="sm"

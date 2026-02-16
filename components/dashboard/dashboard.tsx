@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useOptimistic, useTransition } from "react";
-import { Order, Inventory, OrderFormData, IncomingDelivery } from "@/types";
+import { Order, Inventory, OrderFormData, IncomingDelivery, OrderStatus } from "@/types";
 import { MultiLocationInventoryPanel } from "@/components/inventory/multi-location-inventory-panel";
+import { ManufacturerInventoryBanner } from "@/components/inventory/manufacturer-inventory-banner";
 import { OrderList } from "./order-list";
 import { InventoryAlert } from "./inventory-alert";
 import { IncomingDeliveryPanel } from "@/components/incoming-delivery/incoming-delivery-panel";
 import { calculateInventorySnapshots, getInventorySummary } from "@/utils/calculations";
 import { DEFAULT_ROLL_CONFIG } from "@/utils/constants";
-import { addOrder, updateOrder, deleteOrder } from "@/lib/actions/orders";
+import { addOrder, updateOrder, deleteOrder, updateOrderStatus } from "@/lib/actions/orders";
 import { updateInventory } from "@/lib/actions/inventory";
 
 interface DashboardProps {
@@ -61,6 +62,7 @@ export function Dashboard({
         const newOrder: Order = {
           id: crypto.randomUUID(),
           ...formData,
+          status: 'active',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -110,8 +112,35 @@ export function Dashboard({
     });
   };
 
+  // 受注ステータス更新ハンドラー
+  const handleUpdateOrderStatus = async (id: string, status: OrderStatus) => {
+    startTransition(async () => {
+      try {
+        await updateOrderStatus(id, status);
+        // 楽観的UIのため、ローカルに更新
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.id === id
+              ? {
+                  ...order,
+                  status,
+                  updatedAt: new Date().toISOString(),
+                }
+              : order
+          )
+        );
+      } catch (error) {
+        console.error("ステータス更新エラー:", error);
+        alert("ステータスの更新に失敗しました");
+      }
+    });
+  };
+
   return (
     <div className="space-y-6">
+      {/* メーカー預け在庫バナー */}
+      <ManufacturerInventoryBanner inventory={inventory} />
+
       {/* 在庫パネル（複数拠点対応） */}
       <MultiLocationInventoryPanel inventory={inventory} onUpdate={handleUpdateInventory} />
 
@@ -128,6 +157,7 @@ export function Dashboard({
         onAddOrder={handleAddOrder}
         onUpdateOrder={handleUpdateOrder}
         onDeleteOrder={handleDeleteOrder}
+        onUpdateStatus={handleUpdateOrderStatus}
       />
     </div>
   );

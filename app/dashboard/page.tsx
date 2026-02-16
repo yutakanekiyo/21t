@@ -5,9 +5,9 @@ import { Dashboard } from "@/components/dashboard/dashboard";
 import { DEFAULT_INVENTORY } from "@/utils/constants";
 
 export default async function DashboardPage() {
-  // Server Actionsでデータ取得
+  // Server Actionsでデータ取得（全てのステータスの受注を取得）
   const [orders, inventory, incomingDeliveries] = await Promise.all([
-    getOrders(),
+    getOrders('all'),
     getInventory(),
     getPendingIncomingDeliveries(),
   ]);

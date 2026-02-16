@@ -138,6 +138,7 @@ export function InventoryAdjustmentDialog({
                         min="0"
                         value={formData[selectedLocation].body}
                         onChange={(e) => handleChange(selectedLocation, "body", e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
                     <div>
@@ -148,6 +149,7 @@ export function InventoryAdjustmentDialog({
                         min="0"
                         value={formData[selectedLocation].bottom}
                         onChange={(e) => handleChange(selectedLocation, "bottom", e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
                     <div>
@@ -158,6 +160,7 @@ export function InventoryAdjustmentDialog({
                         min="0"
                         value={formData[selectedLocation].lid}
                         onChange={(e) => handleChange(selectedLocation, "lid", e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
                     <div>
@@ -168,6 +171,7 @@ export function InventoryAdjustmentDialog({
                         min="0"
                         value={formData[selectedLocation].rolls}
                         onChange={(e) => handleChange(selectedLocation, "rolls", e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
                   </>
@@ -181,6 +185,7 @@ export function InventoryAdjustmentDialog({
                         min="0"
                         value={formData[selectedLocation].pailBody}
                         onChange={(e) => handleChange(selectedLocation, "pailBody", e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
                     <div>
@@ -191,6 +196,7 @@ export function InventoryAdjustmentDialog({
                         min="0"
                         value={formData[selectedLocation].pailBottom}
                         onChange={(e) => handleChange(selectedLocation, "pailBottom", e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
                     <div>
@@ -201,6 +207,7 @@ export function InventoryAdjustmentDialog({
                         min="0"
                         value={formData[selectedLocation].pailLid}
                         onChange={(e) => handleChange(selectedLocation, "pailLid", e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
                     <div>
@@ -211,6 +218,7 @@ export function InventoryAdjustmentDialog({
                         min="0"
                         value={formData[selectedLocation].pailRolls}
                         onChange={(e) => handleChange(selectedLocation, "pailRolls", e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </div>
                   </>

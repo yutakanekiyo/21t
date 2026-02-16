@@ -189,6 +189,7 @@ export function OrderFormDialog({
                 onChange={(e) =>
                   handleChange('setQuantity', parseInt(e.target.value) || 0)
                 }
+                onFocus={(e) => e.target.select()}
                 className="col-span-3"
                 placeholder="ボディ・底・蓋各1のセット数"
                 required
@@ -207,6 +208,7 @@ export function OrderFormDialog({
                 onChange={(e) =>
                   handleChange('additionalLids', parseInt(e.target.value) || 0)
                 }
+                onFocus={(e) => e.target.select()}
                 className="col-span-3"
                 placeholder="蓋のみ追加する場合"
               />

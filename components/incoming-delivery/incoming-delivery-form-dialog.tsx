@@ -157,6 +157,7 @@ export function IncomingDeliveryFormDialog({
                 onChange={(e) =>
                   handleChange("quantity", parseInt(e.target.value) || 0)
                 }
+                onFocus={(e) => e.target.select()}
                 placeholder="入荷予定の数量を入力"
               />
             </div>
