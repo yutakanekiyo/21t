@@ -41,6 +41,22 @@ const ITEM_TYPE_UNITS: Record<string, string> = {
   pailRolls: "本",
 };
 
+// 拠点ごとの色設定（カレンダーと同じ）
+const LOCATION_COLORS = {
+  office: {
+    border: "border-l-blue-500",
+    bg: "bg-blue-50/50",
+  },
+  sugisaki: {
+    border: "border-l-purple-500",
+    bg: "bg-purple-50/50",
+  },
+  manufacturer: {
+    border: "border-l-orange-500",
+    bg: "bg-orange-50/50",
+  },
+};
+
 export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -54,6 +70,9 @@ export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
   today.setHours(0, 0, 0, 0);
   scheduledDate.setHours(0, 0, 0, 0);
   const isOverdue = scheduledDate < today && delivery.status === "pending";
+
+  // 拠点ごとの色を取得
+  const locationColors = LOCATION_COLORS[delivery.location];
 
   const handleCompleteClick = () => {
     console.log("Complete button clicked for delivery:", delivery.id);
@@ -106,7 +125,9 @@ export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
   };
 
   return (
-    <Card className={isOverdue ? "border-orange-500 border-2" : ""}>
+    <Card className={`border-l-4 ${locationColors.border} ${locationColors.bg} ${
+      isOverdue ? "border-t-2 border-t-red-500" : ""
+    }`}>
       <CardContent className="pt-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
