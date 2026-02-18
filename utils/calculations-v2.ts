@@ -357,3 +357,161 @@ export function getInventorySummary(
     affectedOrders,
   };
 }
+
+/**
+ * 月次発注レコメンデーションを計算
+ * 翌月末までの受注に対し、拠点在庫（事務所+杉崎）の不足分を算出
+ */
+export interface MonthlyOrderRecommendation {
+  targetPeriod: {
+    start: string; // ISO8601 date
+    end: string;   // ISO8601 date (翌月末)
+  };
+  totalRequired: {
+    body: number;
+    pailBody: number;
+    bottomLid: number;
+    pailBottomLid: number;
+  };
+  localInventory: {
+    body: number;
+    pailBody: number;
+    bottomLid: number; // 底 + 蓋 + ロール換算枚数
+    pailBottomLid: number;
+  };
+  shortage: {
+    body: number;
+    pailBody: number;
+    bottomLid: number;
+    pailBottomLid: number;
+  };
+  recommendedOrder: {
+    // 既存製品
+    bodySets: number;           // ボディ不足分（個数）
+    bottomLidPieces: number;    // 底・蓋不足分（枚数）
+    bottomLidRolls: number;     // 底・蓋不足分（ロール本数）
+    estimatedSets: number;      // おおよそのセット数換算
+
+    // ペール製品
+    pailBodySets: number;
+    pailBottomLidPieces: number;
+    pailBottomLidRolls: number;
+    pailEstimatedSets: number;
+  };
+  affectedOrders: Order[];
+}
+
+export function calculateMonthlyOrderRecommendation(
+  orders: Order[],
+  currentInventory: Inventory,
+  standardRollConfig: RollConversionConfig = DEFAULT_ROLL_CONFIG,
+  pailRollConfig: RollConversionConfig = PAIL_ROLL_CONFIG
+): MonthlyOrderRecommendation {
+  // 今日の日付
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 翌月末の日付を計算
+  const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+  nextMonthEnd.setHours(23, 59, 59, 999);
+
+  const targetStart = today.toISOString().split('T')[0];
+  const targetEnd = nextMonthEnd.toISOString().split('T')[0];
+
+  // 翌月末までの受注を抽出（activeのみ）
+  const targetOrders = orders.filter((order) => {
+    if (order.status !== 'active') return false;
+    const deliveryDate = new Date(order.deliveryDate);
+    deliveryDate.setHours(0, 0, 0, 0);
+    return deliveryDate >= today && deliveryDate <= nextMonthEnd;
+  });
+
+  // 合計必要量を計算（製品タイプ別）
+  let totalBodyRequired = 0;
+  let totalPailBodyRequired = 0;
+  let totalBottomLidRequired = 0;
+  let totalPailBottomLidRequired = 0;
+
+  for (const order of targetOrders) {
+    const isPail = order.productType === 'pail';
+    const bodyRequired = order.setQuantity;
+    const bottomLidRequired = order.setQuantity * 2 + order.additionalLids;
+
+    if (isPail) {
+      totalPailBodyRequired += bodyRequired;
+      totalPailBottomLidRequired += bottomLidRequired;
+    } else {
+      totalBodyRequired += bodyRequired;
+      totalBottomLidRequired += bottomLidRequired;
+    }
+  }
+
+  // 拠点在庫（事務所+杉崎のみ）を取得
+  const localInventory = getLocalInventory(currentInventory);
+
+  // 拠点在庫の底・蓋プールを計算
+  const localBottomLidPool =
+    localInventory.bottom +
+    localInventory.lid +
+    localInventory.rolls * standardRollConfig.piecesPerRoll;
+
+  const localPailBottomLidPool =
+    localInventory.pailBottom +
+    localInventory.pailLid +
+    localInventory.pailRolls * pailRollConfig.piecesPerRoll;
+
+  // 不足分を計算（マイナスの場合は0）
+  const bodyShortage = Math.max(0, totalBodyRequired - localInventory.body);
+  const pailBodyShortage = Math.max(0, totalPailBodyRequired - localInventory.pailBody);
+  const bottomLidShortage = Math.max(0, totalBottomLidRequired - localBottomLidPool);
+  const pailBottomLidShortage = Math.max(
+    0,
+    totalPailBottomLidRequired - localPailBottomLidPool
+  );
+
+  // 発注推奨量を各単位で計算
+  const recommendedOrder = {
+    // 既存製品
+    bodySets: bodyShortage,
+    bottomLidPieces: bottomLidShortage,
+    bottomLidRolls: Math.ceil(bottomLidShortage / standardRollConfig.piecesPerRoll),
+    estimatedSets: Math.ceil(
+      Math.max(bodyShortage, bottomLidShortage / 2) // おおよそのセット数
+    ),
+
+    // ペール製品
+    pailBodySets: pailBodyShortage,
+    pailBottomLidPieces: pailBottomLidShortage,
+    pailBottomLidRolls: Math.ceil(pailBottomLidShortage / pailRollConfig.piecesPerRoll),
+    pailEstimatedSets: Math.ceil(
+      Math.max(pailBodyShortage, pailBottomLidShortage / 2)
+    ),
+  };
+
+  return {
+    targetPeriod: {
+      start: targetStart,
+      end: targetEnd,
+    },
+    totalRequired: {
+      body: totalBodyRequired,
+      pailBody: totalPailBodyRequired,
+      bottomLid: totalBottomLidRequired,
+      pailBottomLid: totalPailBottomLidRequired,
+    },
+    localInventory: {
+      body: localInventory.body,
+      pailBody: localInventory.pailBody,
+      bottomLid: localBottomLidPool,
+      pailBottomLid: localPailBottomLidPool,
+    },
+    shortage: {
+      body: bodyShortage,
+      pailBody: pailBodyShortage,
+      bottomLid: bottomLidShortage,
+      pailBottomLid: pailBottomLidShortage,
+    },
+    recommendedOrder,
+    affectedOrders: targetOrders,
+  };
+}

@@ -4,10 +4,11 @@ import { useState } from "react";
 import { Inventory, getTotalInventory } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, Edit, ArrowRightLeft } from "lucide-react";
+import { Package, Edit, ArrowRightLeft, Factory } from "lucide-react";
 import { LocationInventoryCard } from "./location-inventory-card";
 import { InventoryAdjustmentDialog } from "./inventory-adjustment-dialog";
 import { InventoryTransferDialog } from "./inventory-transfer-dialog";
+import { ManufacturerBulkUpdateDialog } from "./manufacturer-bulk-update-dialog";
 import { DEFAULT_ROLL_CONFIG, PAIL_ROLL_CONFIG } from "@/utils/constants";
 
 interface MultiLocationInventoryPanelProps {
@@ -21,6 +22,7 @@ export function MultiLocationInventoryPanel({
 }: MultiLocationInventoryPanelProps) {
   const [isAdjustmentDialogOpen, setIsAdjustmentDialogOpen] = useState(false);
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+  const [isManufacturerBulkUpdateOpen, setIsManufacturerBulkUpdateOpen] = useState(false);
 
   // 合計在庫を計算
   const totalInventory = getTotalInventory(inventory);
@@ -194,7 +196,18 @@ export function MultiLocationInventoryPanel({
 
         {/* 拠点別在庫カード */}
         <div>
-          <h3 className="text-lg font-semibold mb-3">拠点別在庫</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">拠点別在庫</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsManufacturerBulkUpdateOpen(true)}
+              className="border-orange-500 text-orange-700 hover:bg-orange-50"
+            >
+              <Factory className="h-4 w-4 mr-2" />
+              メーカー在庫一括更新
+            </Button>
+          </div>
           <div className="grid md:grid-cols-3 gap-4">
             <LocationInventoryCard
               locationType="office"
@@ -228,6 +241,20 @@ export function MultiLocationInventoryPanel({
         open={isTransferDialogOpen}
         onOpenChange={setIsTransferDialogOpen}
         currentInventory={inventory}
+      />
+
+      {/* メーカー在庫一括更新ダイアログ */}
+      <ManufacturerBulkUpdateDialog
+        open={isManufacturerBulkUpdateOpen}
+        onOpenChange={setIsManufacturerBulkUpdateOpen}
+        currentManufacturerInventory={inventory.manufacturer}
+        onSubmit={(newManufacturerInventory) => {
+          onUpdate({
+            ...inventory,
+            manufacturer: newManufacturerInventory,
+          });
+          setIsManufacturerBulkUpdateOpen(false);
+        }}
       />
     </>
   );

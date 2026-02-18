@@ -6,7 +6,9 @@ import { MultiLocationInventoryPanel } from "@/components/inventory/multi-locati
 import { OrderList } from "./order-list";
 import { InventoryAlert } from "./inventory-alert";
 import { IncomingDeliveryPanel } from "@/components/incoming-delivery/incoming-delivery-panel";
-import { calculateInventorySnapshotsV2 as calculateInventorySnapshots, getInventorySummary } from "@/utils/calculations-v2";
+import { MonthlyOrderRecommendationPanel } from "./monthly-order-recommendation";
+import { ManufacturerStockAlert } from "./manufacturer-stock-alert";
+import { calculateInventorySnapshotsV2 as calculateInventorySnapshots, getInventorySummary, calculateMonthlyOrderRecommendation } from "@/utils/calculations-v2";
 import { DEFAULT_ROLL_CONFIG } from "@/utils/constants";
 import { addOrder, updateOrder, deleteOrder, updateOrderStatus } from "@/lib/actions/orders";
 import { updateInventory } from "@/lib/actions/inventory";
@@ -30,6 +32,9 @@ export function Dashboard({
   // 在庫計算
   const snapshots = calculateInventorySnapshots(orders, inventory, DEFAULT_ROLL_CONFIG);
   const summary = getInventorySummary(snapshots);
+
+  // 月次発注レコメンド計算
+  const monthlyRecommendation = calculateMonthlyOrderRecommendation(orders, inventory);
 
   // 在庫更新ハンドラー
   const handleUpdateInventory = async (updates: Omit<Inventory, "lastUpdated">) => {
@@ -142,6 +147,12 @@ export function Dashboard({
 
       {/* 入荷予定パネル */}
       <IncomingDeliveryPanel deliveries={incomingDeliveries} />
+
+      {/* 月次発注レコメンド */}
+      <MonthlyOrderRecommendationPanel recommendation={monthlyRecommendation} />
+
+      {/* メーカー生産アラート */}
+      <ManufacturerStockAlert snapshots={snapshots} />
 
       {/* 在庫不足アラート */}
       <InventoryAlert summary={summary} />
