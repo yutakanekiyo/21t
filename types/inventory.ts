@@ -79,6 +79,14 @@ export interface RollConversionConfig {
 }
 
 /**
+ * 在庫引当ステータス
+ */
+export type AllocationStatus =
+  | 'local_ok'              // 手元在庫でOK（事務所+杉崎）
+  | 'manufacturer_pickup'   // メーカー取り寄せが必要
+  | 'production_needed';    // メーカー生産が必要
+
+/**
  * 在庫スナップショット - 各受注時点での在庫状況を記録
  */
 export interface InventorySnapshot {
@@ -121,6 +129,21 @@ export interface InventorySnapshot {
   // 不足数（足りない場合の不足量）
   bodyShortage: number;
   bottomLidShortage: number;
+
+  // 2段階引当情報
+  allocationStatus: AllocationStatus; // 引当ステータス
+  localInventoryUsed: {               // 拠点在庫使用量
+    body: number;
+    bottomLid: number;
+  };
+  manufacturerInventoryUsed: {        // メーカー在庫使用量
+    body: number;
+    bottomLid: number;
+  };
+  productionNeeded: {                 // 生産必要量
+    body: number;
+    bottomLid: number;
+  };
 }
 
 /**
@@ -134,7 +157,7 @@ export interface InventorySummary {
 }
 
 /**
- * 合計在庫を計算するヘルパー関数
+ * 合計在庫を計算するヘルパー関数（全拠点）
  */
 export function getTotalInventory(inventory: Inventory): LocationInventory {
   return {
@@ -146,5 +169,21 @@ export function getTotalInventory(inventory: Inventory): LocationInventory {
     pailBottom: inventory.office.pailBottom + inventory.sugisaki.pailBottom + inventory.manufacturer.pailBottom,
     pailLid: inventory.office.pailLid + inventory.sugisaki.pailLid + inventory.manufacturer.pailLid,
     pailRolls: inventory.office.pailRolls + inventory.sugisaki.pailRolls + inventory.manufacturer.pailRolls,
+  };
+}
+
+/**
+ * 拠点在庫を計算するヘルパー関数（事務所+杉崎のみ、メーカー除く）
+ */
+export function getLocalInventory(inventory: Inventory): LocationInventory {
+  return {
+    body: inventory.office.body + inventory.sugisaki.body,
+    bottom: inventory.office.bottom + inventory.sugisaki.bottom,
+    lid: inventory.office.lid + inventory.sugisaki.lid,
+    rolls: inventory.office.rolls + inventory.sugisaki.rolls,
+    pailBody: inventory.office.pailBody + inventory.sugisaki.pailBody,
+    pailBottom: inventory.office.pailBottom + inventory.sugisaki.pailBottom,
+    pailLid: inventory.office.pailLid + inventory.sugisaki.pailLid,
+    pailRolls: inventory.office.pailRolls + inventory.sugisaki.pailRolls,
   };
 }

@@ -9,9 +9,10 @@ export type {
   InventoryTransferFormData,
   RollConversionConfig,
   InventorySnapshot,
-  InventorySummary
+  InventorySummary,
+  AllocationStatus
 } from './inventory';
-export { getTotalInventory } from './inventory';
+export { getTotalInventory, getLocalInventory } from './inventory';
 export type {
   IncomingDelivery,
   IncomingDeliveryFormData,

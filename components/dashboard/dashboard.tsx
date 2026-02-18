@@ -6,7 +6,7 @@ import { MultiLocationInventoryPanel } from "@/components/inventory/multi-locati
 import { OrderList } from "./order-list";
 import { InventoryAlert } from "./inventory-alert";
 import { IncomingDeliveryPanel } from "@/components/incoming-delivery/incoming-delivery-panel";
-import { calculateInventorySnapshots, getInventorySummary } from "@/utils/calculations";
+import { calculateInventorySnapshotsV2 as calculateInventorySnapshots, getInventorySummary } from "@/utils/calculations-v2";
 import { DEFAULT_ROLL_CONFIG } from "@/utils/constants";
 import { addOrder, updateOrder, deleteOrder, updateOrderStatus } from "@/lib/actions/orders";
 import { updateInventory } from "@/lib/actions/inventory";
