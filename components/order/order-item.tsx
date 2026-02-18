@@ -90,7 +90,27 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
                 </Button>
               </>
             )}
-            {(order.status === 'completed' || order.status === 'archived') && onUpdateStatus && (
+            {order.status === 'completed' && onUpdateStatus && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReactivateClick}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  進行中に戻す
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleArchiveClick}
+                >
+                  <Archive className="h-4 w-4 mr-1" />
+                  アーカイブ
+                </Button>
+              </>
+            )}
+            {order.status === 'archived' && onUpdateStatus && (
               <Button
                 variant="outline"
                 size="sm"
