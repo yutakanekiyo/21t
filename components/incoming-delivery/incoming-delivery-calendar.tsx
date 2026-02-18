@@ -7,10 +7,30 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { generateCalendarDays, getMonthName, WEEKDAY_NAMES, formatDateToYYYYMMDD } from "@/utils/calendarUtils";
 import { IncomingDeliveryItem } from "./incoming-delivery-item";
+import { LOCATIONS } from "@/utils/constants";
 
 interface IncomingDeliveryCalendarProps {
   deliveries: IncomingDelivery[];
 }
+
+// 拠点ごとの色設定
+const LOCATION_COLORS = {
+  office: {
+    bg: "bg-blue-100",
+    text: "text-blue-800",
+    border: "border-blue-200",
+  },
+  sugisaki: {
+    bg: "bg-purple-100",
+    text: "text-purple-800",
+    border: "border-purple-200",
+  },
+  manufacturer: {
+    bg: "bg-orange-100",
+    text: "text-orange-800",
+    border: "border-orange-200",
+  },
+};
 
 export function IncomingDeliveryCalendar({
   deliveries,
@@ -75,7 +95,7 @@ export function IncomingDeliveryCalendar({
   return (
     <div className="space-y-4">
       {/* カレンダーヘッダー */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-xl font-bold">
           {currentYear}年 {getMonthName(currentMonth)}
         </h3>
@@ -90,6 +110,20 @@ export function IncomingDeliveryCalendar({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+
+      {/* 色の凡例 */}
+      <div className="flex gap-4 text-sm mb-4 p-2 bg-muted/30 rounded-md">
+        <span className="font-medium">入荷先:</span>
+        {LOCATIONS.map((location) => {
+          const colors = LOCATION_COLORS[location.id];
+          return (
+            <div key={location.id} className="flex items-center gap-1">
+              <div className={`w-3 h-3 rounded ${colors.bg} border ${colors.border}`} />
+              <span>{location.name}</span>
+            </div>
+          );
+        })}
       </div>
 
       {/* カレンダーグリッド */}
@@ -142,15 +176,14 @@ export function IncomingDeliveryCalendar({
                     {dayDeliveries.slice(0, 2).map((delivery) => {
                       const isOverdue =
                         delivery.status === "pending" && day.isPast;
+                      const locationColors = LOCATION_COLORS[delivery.location];
                       return (
                         <div
                           key={delivery.id}
-                          className={`text-xs px-1 py-0.5 rounded truncate ${
+                          className={`text-xs px-1 py-0.5 rounded truncate border ${
                             isOverdue
-                              ? "bg-orange-100 text-orange-800"
-                              : day.isToday
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-green-100 text-green-800"
+                              ? "bg-red-100 text-red-800 border-red-300"
+                              : `${locationColors.bg} ${locationColors.text} ${locationColors.border}`
                           }`}
                         >
                           {delivery.quantity}
