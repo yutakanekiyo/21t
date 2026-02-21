@@ -42,7 +42,7 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
               <h3 className="text-lg font-semibold">{order.orderNumber}</h3>
               {/* 製品タイプバッジ */}
               <Badge variant={order.productType === 'pail' ? 'default' : 'secondary'}>
-                {order.productType === 'pail' ? 'ペール' : '既存製品'}
+                {order.productType === 'pail' ? 'ペール' : 'WIP'}
               </Badge>
               {/* ステータスバッジ */}
               {order.status === 'completed' && (
@@ -55,11 +55,15 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
                   アーカイブ
                 </Badge>
               )}
-              {/* 在庫状況バッジ */}
-              {snapshot.isAllSufficient ? (
+              {/* 在庫状況バッジ（3択） */}
+              {snapshot.allocationStatus === 'local_ok' && (
                 <Badge variant="success">OK</Badge>
-              ) : (
-                <Badge variant="destructive">在庫不足</Badge>
+              )}
+              {snapshot.allocationStatus === 'manufacturer_pickup' && (
+                <Badge className="bg-amber-500 text-white">発注必要</Badge>
+              )}
+              {snapshot.allocationStatus === 'production_needed' && (
+                <Badge variant="destructive">生産必要</Badge>
               )}
             </div>
             <p className="text-sm text-muted-foreground">{order.customerName}</p>
@@ -141,11 +145,11 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
         {/* 受注内容 */}
         <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-muted rounded-md">
           <div>
-            <p className="text-sm text-muted-foreground">セット数</p>
+            <p className="text-sm text-muted-foreground">セット数（ボディ・底）</p>
             <p className="font-semibold">{order.setQuantity.toLocaleString()}セット</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">追加蓋</p>
+            <p className="text-sm text-muted-foreground">蓋数（トータル）</p>
             <p className="font-semibold">{order.additionalLids.toLocaleString()}枚</p>
           </div>
         </div>
@@ -154,28 +158,45 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">ボディ必要数:</span>
-            <span>{snapshot.required.body.toLocaleString()}個</span>
+            <span>{snapshot.setQuantity.toLocaleString()}枚</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">底・蓋必要数:</span>
-            <span>{snapshot.required.bottomLid.toLocaleString()}枚</span>
+            <span className="text-muted-foreground">底必要数:</span>
+            <span>{snapshot.setQuantity.toLocaleString()}枚</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">蓋必要数:</span>
+            <span>{snapshot.additionalLids.toLocaleString()}枚</span>
           </div>
 
           <div className="pt-2 border-t">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">処理後ボディ:</span>
-              <span className={snapshot.isBodySufficient ? '' : 'text-destructive font-semibold'}>
-                {snapshot.afterInventory.body.toLocaleString()}個
-                {!snapshot.isBodySufficient && ` (不足: ${snapshot.bodyShortage.toLocaleString()}個)`}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">処理後底・蓋:</span>
-              <span className={snapshot.isBottomLidSufficient ? '' : 'text-destructive font-semibold'}>
-                {snapshot.afterInventory.bottomLidPool.toLocaleString()}枚
-                {!snapshot.isBottomLidSufficient && ` (不足: ${snapshot.bottomLidShortage.toLocaleString()}枚)`}
-              </span>
-            </div>
+            {(() => {
+              const netBody = snapshot.afterInventory.body - snapshot.bodyShortage;
+              const netBottom = snapshot.afterInventory.bottom - snapshot.bottomShortage;
+              const netLid = snapshot.afterInventory.lid - snapshot.lidShortage;
+              return (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">処理後ボディ:</span>
+                    <span className={netBody < 0 ? 'text-destructive font-semibold' : ''}>
+                      {netBody.toLocaleString()}枚
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">処理後底:</span>
+                    <span className={netBottom < 0 ? 'text-destructive font-semibold' : ''}>
+                      {netBottom.toLocaleString()}枚
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">処理後蓋:</span>
+                    <span className={netLid < 0 ? 'text-destructive font-semibold' : ''}>
+                      {netLid.toLocaleString()}枚
+                    </span>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
 

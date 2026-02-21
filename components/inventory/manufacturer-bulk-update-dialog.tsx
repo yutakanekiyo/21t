@@ -29,8 +29,21 @@ export function ManufacturerBulkUpdateDialog({
   currentManufacturerInventory,
   onSubmit,
 }: ManufacturerBulkUpdateDialogProps) {
-  const [formData, setFormData] = useState<LocationInventory>(
-    currentManufacturerInventory
+  // メーカーはボディとロールのみ。底・蓋は常に0
+  const [formData, setFormData] = useState<LocationInventory>({
+    ...currentManufacturerInventory,
+    bottom: 0,
+    lid: 0,
+    pailBottom: 0,
+    pailLid: 0,
+  });
+
+  // ロール入力はm（メートル）単位で受け付ける（内部では本に変換）
+  const [wipRollsInput, setWipRollsInput] = useState(
+    (currentManufacturerInventory.rolls * 200).toString()
+  );
+  const [pailRollsInput, setPailRollsInput] = useState(
+    (currentManufacturerInventory.pailRolls * 200).toString()
   );
 
   const handleChange = (field: keyof LocationInventory, value: number) => {
@@ -47,6 +60,8 @@ export function ManufacturerBulkUpdateDialog({
 
   const handleReset = () => {
     setFormData(currentManufacturerInventory);
+    setWipRollsInput((currentManufacturerInventory.rolls * 200).toString());
+    setPailRollsInput((currentManufacturerInventory.pailRolls * 200).toString());
   };
 
   return (
@@ -65,18 +80,18 @@ export function ManufacturerBulkUpdateDialog({
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-6 py-4">
-            {/* 既存製品 */}
+            {/* WIP製品 */}
             <Card className="border-blue-300">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Package className="h-5 w-5 text-blue-600" />
-                  既存製品
+                  WIP
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="body">ボディ（個）</Label>
+                    <Label htmlFor="body">ボディ（枚）</Label>
                     <Input
                       id="body"
                       type="number"
@@ -99,74 +114,23 @@ export function ManufacturerBulkUpdateDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="bottom">底（枚）</Label>
-                    <Input
-                      id="bottom"
-                      type="number"
-                      min="0"
-                      value={formData.bottom}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          handleChange("bottom", 0);
-                        } else {
-                          const num = parseInt(value);
-                          if (!isNaN(num)) {
-                            handleChange("bottom", num);
-                          }
-                        }
-                      }}
-                      onFocus={(e) => e.target.select()}
-                      className="text-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="lid">蓋（枚）</Label>
-                    <Input
-                      id="lid"
-                      type="number"
-                      min="0"
-                      value={formData.lid}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          handleChange("lid", 0);
-                        } else {
-                          const num = parseInt(value);
-                          if (!isNaN(num)) {
-                            handleChange("lid", num);
-                          }
-                        }
-                      }}
-                      onFocus={(e) => e.target.select()}
-                      className="text-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rolls">ロール（本）</Label>
+                    <Label htmlFor="rolls">ロール（m）</Label>
                     <Input
                       id="rolls"
                       type="number"
                       min="0"
-                      value={formData.rolls}
+                      step="200"
+                      value={wipRollsInput}
                       onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          handleChange("rolls", 0);
-                        } else {
-                          const num = parseInt(value);
-                          if (!isNaN(num)) {
-                            handleChange("rolls", num);
-                          }
-                        }
+                        setWipRollsInput(e.target.value);
+                        const meters = parseInt(e.target.value) || 0;
+                        handleChange("rolls", Math.floor(meters / 200));
                       }}
                       onFocus={(e) => e.target.select()}
                       className="text-lg"
                     />
                     <p className="text-xs text-muted-foreground">
-                      ※ 1本 = 300枚（底・蓋共通）
+                      ※ 200m = 1本 = 300枚（底・蓋共通）
                     </p>
                   </div>
                 </div>
@@ -184,7 +148,7 @@ export function ManufacturerBulkUpdateDialog({
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="pailBody">ボディ（個）</Label>
+                    <Label htmlFor="pailBody">ボディ（枚）</Label>
                     <Input
                       id="pailBody"
                       type="number"
@@ -207,74 +171,23 @@ export function ManufacturerBulkUpdateDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="pailBottom">底（枚）</Label>
-                    <Input
-                      id="pailBottom"
-                      type="number"
-                      min="0"
-                      value={formData.pailBottom}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          handleChange("pailBottom", 0);
-                        } else {
-                          const num = parseInt(value);
-                          if (!isNaN(num)) {
-                            handleChange("pailBottom", num);
-                          }
-                        }
-                      }}
-                      onFocus={(e) => e.target.select()}
-                      className="text-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="pailLid">蓋（枚）</Label>
-                    <Input
-                      id="pailLid"
-                      type="number"
-                      min="0"
-                      value={formData.pailLid}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          handleChange("pailLid", 0);
-                        } else {
-                          const num = parseInt(value);
-                          if (!isNaN(num)) {
-                            handleChange("pailLid", num);
-                          }
-                        }
-                      }}
-                      onFocus={(e) => e.target.select()}
-                      className="text-lg"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="pailRolls">ロール（本）</Label>
+                    <Label htmlFor="pailRolls">ロール（m）</Label>
                     <Input
                       id="pailRolls"
                       type="number"
                       min="0"
-                      value={formData.pailRolls}
+                      step="200"
+                      value={pailRollsInput}
                       onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === "") {
-                          handleChange("pailRolls", 0);
-                        } else {
-                          const num = parseInt(value);
-                          if (!isNaN(num)) {
-                            handleChange("pailRolls", num);
-                          }
-                        }
+                        setPailRollsInput(e.target.value);
+                        const meters = parseInt(e.target.value) || 0;
+                        handleChange("pailRolls", Math.floor(meters / 200));
                       }}
                       onFocus={(e) => e.target.select()}
                       className="text-lg"
                     />
                     <p className="text-xs text-muted-foreground">
-                      ※ 1本 = 630セット（底・蓋共通）
+                      ※ 200m = 1本（底655枚・蓋606枚）
                     </p>
                   </div>
                 </div>
@@ -286,6 +199,7 @@ export function ManufacturerBulkUpdateDialog({
               <p className="font-semibold mb-1">💡 使い方</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
                 <li>メーカーから送られてきた在庫レポートの数値をそのまま入力</li>
+                <li>ロールはメートル（m）単位で入力してください（200m単位）</li>
                 <li>各フィールドをクリックすると全選択されるので、上書き入力が簡単</li>
                 <li>入力後「更新」ボタンでメーカー在庫が一括更新されます</li>
               </ul>

@@ -9,7 +9,7 @@ import {
   AllocationStatus,
 } from '@/types';
 import { compareDates } from './dateUtils';
-import { DEFAULT_ROLL_CONFIG, PAIL_ROLL_CONFIG } from './constants';
+import { DEFAULT_ROLL_CONFIG, PAIL_ROLL_CONFIG, PAIL_BOTTOM_PIECES_PER_ROLL, PAIL_LID_PIECES_PER_ROLL } from './constants';
 
 /**
  * 2段階在庫引当ロジックを実装した新しい計算関数
@@ -45,14 +45,14 @@ export function calculateInventorySnapshotsV2(
   let localPailLid = localInventory.pailLid;
   let localPailRolls = localInventory.pailRolls;
 
-  // メーカー在庫
+  // メーカー在庫（メーカーはボディとロールのみ。底・蓋のカット済み在庫は持たない）
   let mfrBody = manufacturerInventory.body;
-  let mfrBottom = manufacturerInventory.bottom;
-  let mfrLid = manufacturerInventory.lid;
+  const mfrBottom = 0;
+  const mfrLid = 0;
   let mfrRolls = manufacturerInventory.rolls;
   let mfrPailBody = manufacturerInventory.pailBody;
-  let mfrPailBottom = manufacturerInventory.pailBottom;
-  let mfrPailLid = manufacturerInventory.pailLid;
+  const mfrPailBottom = 0;
+  const mfrPailLid = 0;
   let mfrPailRolls = manufacturerInventory.pailRolls;
 
   const snapshots: InventorySnapshot[] = [];
@@ -64,7 +64,8 @@ export function calculateInventorySnapshotsV2(
 
     // 必要数を計算
     const requiredBody = order.setQuantity;
-    const requiredBottomLid = order.setQuantity + order.setQuantity + order.additionalLids;
+    // 変更後: 底1枚/セット + 蓋トータル（setQuantity*2 から setQuantity へ）
+    const requiredBottomLid = order.setQuantity + order.additionalLids;
 
     // 処理前の在庫（全体）
     const totalBodyBefore = isPail
@@ -131,82 +132,86 @@ export function calculateInventorySnapshotsV2(
     let bottomLidFromLocal = 0;
     let bottomLidFromMfr = 0;
     let bottomLidProductionNeeded = 0;
+    let bottomProductionNeeded = 0;
+    let lidProductionNeeded = 0;
 
-    // 拠点在庫の底・蓋プール
-    const localBottomLidPool = isPail
-      ? localPailBottom + localPailLid + localPailRolls * rollConfig.piecesPerRoll
-      : localBottom + localLid + localRolls * rollConfig.piecesPerRoll;
+    if (isPail) {
+      // ペール: 底と蓋で異なるロール歩留まり（655 vs 606）を使用した分割引当
+      const reqBottom = order.setQuantity;
+      const reqLid = order.additionalLids;
 
-    // メーカー在庫の底・蓋プール
-    const mfrBottomLidPool = isPail
-      ? mfrPailBottom + mfrPailLid + mfrPailRolls * rollConfig.piecesPerRoll
-      : mfrBottom + mfrLid + mfrRolls * rollConfig.piecesPerRoll;
+      // 拠点在庫から底を引当（pailBottom → pailRolls 655枚/本）
+      let localInv = { bottom: localPailBottom, lid: localPailLid, rolls: localPailRolls };
+      const localBottomResult = allocatePailBottom(reqBottom, localInv);
+      localInv = localBottomResult.newInventory;
 
-    if (localBottomLidPool >= requiredBottomLid) {
-      // 拠点在庫で足りる
-      bottomLidFromLocal = requiredBottomLid;
-      // 拠点在庫から引き落とし
-      allocateBottomLid(
-        requiredBottomLid,
-        isPail,
-        true,
-        rollConfig,
-        { bottom: isPail ? localPailBottom : localBottom, lid: isPail ? localPailLid : localLid, rolls: isPail ? localPailRolls : localRolls }
-      );
-      if (isPail) {
-        const result = allocateBottomLid(requiredBottomLid, isPail, true, rollConfig, { bottom: localPailBottom, lid: localPailLid, rolls: localPailRolls });
-        localPailBottom = result.bottom;
-        localPailLid = result.lid;
-        localPailRolls = result.rolls;
-      } else {
-        const result = allocateBottomLid(requiredBottomLid, isPail, true, rollConfig, { bottom: localBottom, lid: localLid, rolls: localRolls });
-        localBottom = result.bottom;
-        localLid = result.lid;
-        localRolls = result.rolls;
+      // 拠点在庫から蓋を引当（pailLid → 残りpailRolls 606枚/本）
+      const localLidResult = allocatePailLid(reqLid, localInv);
+      localInv = localLidResult.newInventory;
+
+      localPailBottom = localInv.bottom;
+      localPailLid = localInv.lid;
+      localPailRolls = localInv.rolls;
+      bottomLidFromLocal = localBottomResult.allocated + localLidResult.allocated;
+
+      const remainingBottom = reqBottom - localBottomResult.allocated;
+      const remainingLid = reqLid - localLidResult.allocated;
+
+      if (remainingBottom > 0 || remainingLid > 0) {
+        // メーカー在庫から引当
+        let mfrInv = { bottom: mfrPailBottom, lid: mfrPailLid, rolls: mfrPailRolls };
+        const mfrBottomResult = allocatePailBottom(remainingBottom, mfrInv);
+        mfrInv = mfrBottomResult.newInventory;
+        const mfrLidResult = allocatePailLid(remainingLid, mfrInv);
+        mfrInv = mfrLidResult.newInventory;
+
+        mfrPailRolls = mfrInv.rolls;
+        bottomLidFromMfr = mfrBottomResult.allocated + mfrLidResult.allocated;
+
+        const prodBottom = remainingBottom - mfrBottomResult.allocated;
+        const prodLid = remainingLid - mfrLidResult.allocated;
+        bottomLidProductionNeeded = prodBottom + prodLid;
+        bottomProductionNeeded = prodBottom;
+        lidProductionNeeded = prodLid;
       }
     } else {
-      // 拠点在庫を全部使う
-      bottomLidFromLocal = localBottomLidPool;
-      const remainingBottomLid = requiredBottomLid - localBottomLidPool;
+      // WIP: 分割方式（底・蓋を独立して引当、どちらも300枚/本）
+      const reqBottom = order.setQuantity;
+      const reqLid = order.additionalLids;
 
-      // 拠点在庫をゼロに
-      if (isPail) {
-        localPailBottom = 0;
-        localPailLid = 0;
-        localPailRolls = 0;
-      } else {
-        localBottom = 0;
-        localLid = 0;
-        localRolls = 0;
-      }
+      // 拠点在庫から底を引当（bottom → rolls@300枚/本）
+      let localInv = { bottom: localBottom, lid: localLid, rolls: localRolls };
+      const localBottomResult = allocateWipBottom(reqBottom, localInv);
+      localInv = localBottomResult.newInventory;
 
-      if (mfrBottomLidPool >= remainingBottomLid) {
-        // メーカー在庫で足りる
-        bottomLidFromMfr = remainingBottomLid;
-        if (isPail) {
-          const result = allocateBottomLid(remainingBottomLid, isPail, false, rollConfig, { bottom: mfrPailBottom, lid: mfrPailLid, rolls: mfrPailRolls });
-          mfrPailBottom = result.bottom;
-          mfrPailLid = result.lid;
-          mfrPailRolls = result.rolls;
-        } else {
-          const result = allocateBottomLid(remainingBottomLid, isPail, false, rollConfig, { bottom: mfrBottom, lid: mfrLid, rolls: mfrRolls });
-          mfrBottom = result.bottom;
-          mfrLid = result.lid;
-          mfrRolls = result.rolls;
-        }
-      } else {
-        // メーカー在庫も不足
-        bottomLidFromMfr = mfrBottomLidPool;
-        bottomLidProductionNeeded = remainingBottomLid - mfrBottomLidPool;
-        if (isPail) {
-          mfrPailBottom = 0;
-          mfrPailLid = 0;
-          mfrPailRolls = 0;
-        } else {
-          mfrBottom = 0;
-          mfrLid = 0;
-          mfrRolls = 0;
-        }
+      // 拠点在庫から蓋を引当（lid → 残りrolls@300枚/本）
+      const localLidResult = allocateWipLid(reqLid, localInv);
+      localInv = localLidResult.newInventory;
+
+      localBottom = localInv.bottom;
+      localLid = localInv.lid;
+      localRolls = localInv.rolls;
+      bottomLidFromLocal = localBottomResult.allocated + localLidResult.allocated;
+
+      const remainingBottom = reqBottom - localBottomResult.allocated;
+      const remainingLid = reqLid - localLidResult.allocated;
+
+      if (remainingBottom > 0 || remainingLid > 0) {
+        // メーカー在庫から引当
+        let mfrInv = { bottom: mfrBottom, lid: mfrLid, rolls: mfrRolls };
+        const mfrBottomResult = allocateWipBottom(remainingBottom, mfrInv);
+        mfrInv = mfrBottomResult.newInventory;
+        const mfrLidResult = allocateWipLid(remainingLid, mfrInv);
+        mfrInv = mfrLidResult.newInventory;
+
+        mfrRolls = mfrInv.rolls;
+        bottomLidFromMfr = mfrBottomResult.allocated + mfrLidResult.allocated;
+
+        const prodBottom = remainingBottom - mfrBottomResult.allocated;
+        const prodLid = remainingLid - mfrLidResult.allocated;
+        bottomLidProductionNeeded = prodBottom + prodLid;
+        bottomProductionNeeded = prodBottom;
+        lidProductionNeeded = prodLid;
       }
     }
 
@@ -262,11 +267,13 @@ export function calculateInventorySnapshotsV2(
         rolls: totalRollsAfter,
         bottomLidPool: totalBottomLidPoolAfter,
       },
-      isBodySufficient: totalBodyAfter >= 0,
-      isBottomLidSufficient: totalBottomLidPoolAfter >= 0,
-      isAllSufficient: totalBodyAfter >= 0 && totalBottomLidPoolAfter >= 0,
-      bodyShortage: totalBodyAfter < 0 ? Math.abs(totalBodyAfter) : 0,
-      bottomLidShortage: totalBottomLidPoolAfter < 0 ? Math.abs(totalBottomLidPoolAfter) : 0,
+      isBodySufficient: bodyProductionNeeded === 0,
+      isBottomLidSufficient: bottomLidProductionNeeded === 0,
+      isAllSufficient: bodyProductionNeeded === 0 && bottomLidProductionNeeded === 0,
+      bodyShortage: bodyProductionNeeded,
+      bottomLidShortage: bottomLidProductionNeeded,
+      bottomShortage: bottomProductionNeeded,
+      lidShortage: lidProductionNeeded,
       allocationStatus,
       localInventoryUsed: {
         body: bodyFromLocal,
@@ -289,12 +296,10 @@ export function calculateInventorySnapshotsV2(
 }
 
 /**
- * 底・蓋を在庫から引き落とすヘルパー関数
+ * WIP用: 底・蓋をプール方式で在庫から引き落とすヘルパー関数（300枚/本）
  */
 function allocateBottomLid(
   required: number,
-  isPail: boolean,
-  isLocal: boolean,
   rollConfig: RollConversionConfig,
   inventory: { bottom: number; lid: number; rolls: number }
 ): { bottom: number; lid: number; rolls: number } {
@@ -330,6 +335,111 @@ function allocateBottomLid(
   lid -= remaining;
 
   return { bottom, lid, rolls };
+}
+
+interface PailAllocationResult {
+  allocated: number;
+  newInventory: { bottom: number; lid: number; rolls: number };
+}
+
+/**
+ * ペール用: 底をpailBottom → pailRolls（655枚/本）の順で引当
+ */
+function allocatePailBottom(
+  required: number,
+  inventory: { bottom: number; lid: number; rolls: number }
+): PailAllocationResult {
+  let { bottom, lid, rolls } = { ...inventory };
+  let remaining = required;
+
+  // pailBottomから優先使用
+  const fromDirect = Math.min(bottom, remaining);
+  bottom -= fromDirect;
+  remaining -= fromDirect;
+
+  // pailRollsを655枚/本で使用（必要枚数だけ切り出す）
+  if (remaining > 0) {
+    const totalRollPieces = rolls * PAIL_BOTTOM_PIECES_PER_ROLL;
+    const piecesFromRolls = Math.min(totalRollPieces, remaining);
+    remaining -= piecesFromRolls;
+    rolls = Math.floor((totalRollPieces - piecesFromRolls) / PAIL_BOTTOM_PIECES_PER_ROLL);
+  }
+
+  return { allocated: required - remaining, newInventory: { bottom, lid, rolls } };
+}
+
+/**
+ * ペール用: 蓋をpailLid → 残りpailRolls（606枚/本）の順で引当
+ */
+function allocatePailLid(
+  required: number,
+  inventory: { bottom: number; lid: number; rolls: number }
+): PailAllocationResult {
+  let { bottom, lid, rolls } = { ...inventory };
+  let remaining = required;
+
+  // pailLidから優先使用
+  const fromDirect = Math.min(lid, remaining);
+  lid -= fromDirect;
+  remaining -= fromDirect;
+
+  // 残りpailRollsを606枚/本で使用（必要枚数だけ切り出す）
+  if (remaining > 0) {
+    const totalRollPieces = rolls * PAIL_LID_PIECES_PER_ROLL;
+    const piecesFromRolls = Math.min(totalRollPieces, remaining);
+    remaining -= piecesFromRolls;
+    rolls = Math.floor((totalRollPieces - piecesFromRolls) / PAIL_LID_PIECES_PER_ROLL);
+  }
+
+  return { allocated: required - remaining, newInventory: { bottom, lid, rolls } };
+}
+
+/**
+ * WIP用: 底をbottom → rolls（300枚/本）の順で引当
+ */
+function allocateWipBottom(
+  required: number,
+  inventory: { bottom: number; lid: number; rolls: number }
+): PailAllocationResult {
+  let { bottom, lid, rolls } = { ...inventory };
+  let remaining = required;
+
+  const fromDirect = Math.min(bottom, remaining);
+  bottom -= fromDirect;
+  remaining -= fromDirect;
+
+  if (remaining > 0) {
+    const totalRollPieces = rolls * DEFAULT_ROLL_CONFIG.piecesPerRoll;
+    const piecesFromRolls = Math.min(totalRollPieces, remaining);
+    remaining -= piecesFromRolls;
+    rolls = Math.floor((totalRollPieces - piecesFromRolls) / DEFAULT_ROLL_CONFIG.piecesPerRoll);
+  }
+
+  return { allocated: required - remaining, newInventory: { bottom, lid, rolls } };
+}
+
+/**
+ * WIP用: 蓋をlid → 残りrolls（300枚/本）の順で引当
+ */
+function allocateWipLid(
+  required: number,
+  inventory: { bottom: number; lid: number; rolls: number }
+): PailAllocationResult {
+  let { bottom, lid, rolls } = { ...inventory };
+  let remaining = required;
+
+  const fromDirect = Math.min(lid, remaining);
+  lid -= fromDirect;
+  remaining -= fromDirect;
+
+  if (remaining > 0) {
+    const totalRollPieces = rolls * DEFAULT_ROLL_CONFIG.piecesPerRoll;
+    const piecesFromRolls = Math.min(totalRollPieces, remaining);
+    remaining -= piecesFromRolls;
+    rolls = Math.floor((totalRollPieces - piecesFromRolls) / DEFAULT_ROLL_CONFIG.piecesPerRoll);
+  }
+
+  return { allocated: required - remaining, newInventory: { bottom, lid, rolls } };
 }
 
 /**
@@ -386,16 +496,18 @@ export interface MonthlyOrderRecommendation {
     pailBottomLid: number;
   };
   recommendedOrder: {
-    // 既存製品
+    // WIP製品
     bodySets: number;           // ボディ不足分（個数）
     bottomLidPieces: number;    // 底・蓋不足分（枚数）
     bottomLidRolls: number;     // 底・蓋不足分（ロール本数）
+    bottomLidMeters: number;    // 底・蓋不足分（メートル数）
     estimatedSets: number;      // おおよそのセット数換算
 
     // ペール製品
     pailBodySets: number;
     pailBottomLidPieces: number;
     pailBottomLidRolls: number;
+    pailBottomLidMeters: number; // ペール底・蓋不足分（メートル数）
     pailEstimatedSets: number;
   };
   affectedOrders: Order[];
@@ -435,7 +547,7 @@ export function calculateMonthlyOrderRecommendation(
   for (const order of targetOrders) {
     const isPail = order.productType === 'pail';
     const bodyRequired = order.setQuantity;
-    const bottomLidRequired = order.setQuantity * 2 + order.additionalLids;
+    const bottomLidRequired = order.setQuantity + order.additionalLids;
 
     if (isPail) {
       totalPailBodyRequired += bodyRequired;
@@ -447,22 +559,63 @@ export function calculateMonthlyOrderRecommendation(
   }
 
   // 拠点在庫（事務所+杉崎のみ）を取得
-  const localInventory = getLocalInventory(currentInventory);
+  const baseLocalInventory = getLocalInventory(currentInventory);
 
-  // 拠点在庫の底・蓋プールを計算
-  const localBottomLidPool =
-    localInventory.bottom +
-    localInventory.lid +
-    localInventory.rolls * standardRollConfig.piecesPerRoll;
+  // 過去納期のアクティブ受注が消費する拠点在庫を先に差し引く
+  // （ウォーターフォール引当と整合させるため）
+  const allActiveSorted = [...orders]
+    .filter((o) => o.status === 'active')
+    .sort((a, b) => compareDates(a.deliveryDate, b.deliveryDate));
 
-  const localPailBottomLidPool =
-    localInventory.pailBottom +
-    localInventory.pailLid +
-    localInventory.pailRolls * pailRollConfig.piecesPerRoll;
+  let adjBody = baseLocalInventory.body;
+  let adjBottom = baseLocalInventory.bottom;
+  let adjLid = baseLocalInventory.lid;
+  let adjRolls = baseLocalInventory.rolls;
+  let adjPailBody = baseLocalInventory.pailBody;
+  let adjPailBottom = baseLocalInventory.pailBottom;
+  let adjPailLid = baseLocalInventory.pailLid;
+  let adjPailRolls = baseLocalInventory.pailRolls;
+
+  for (const order of allActiveSorted) {
+    const deliveryDate = new Date(order.deliveryDate);
+    deliveryDate.setHours(0, 0, 0, 0);
+    if (deliveryDate >= today) break;
+
+    const isPail = order.productType === 'pail';
+    if (isPail) {
+      adjPailBody = Math.max(0, adjPailBody - order.setQuantity);
+      let inv = { bottom: adjPailBottom, lid: adjPailLid, rolls: adjPailRolls };
+      const br = allocatePailBottom(order.setQuantity, inv);
+      inv = br.newInventory;
+      const lr = allocatePailLid(order.additionalLids, inv);
+      inv = lr.newInventory;
+      adjPailBottom = inv.bottom;
+      adjPailLid = inv.lid;
+      adjPailRolls = inv.rolls;
+    } else {
+      adjBody = Math.max(0, adjBody - order.setQuantity);
+      const pool = adjBottom + adjLid + adjRolls * standardRollConfig.piecesPerRoll;
+      const needed = order.setQuantity + order.additionalLids;
+      if (pool >= needed) {
+        const result = allocateBottomLid(needed, standardRollConfig, { bottom: adjBottom, lid: adjLid, rolls: adjRolls });
+        adjBottom = result.bottom;
+        adjLid = result.lid;
+        adjRolls = result.rolls;
+      } else {
+        adjBottom = 0;
+        adjLid = 0;
+        adjRolls = 0;
+      }
+    }
+  }
+
+  // 調整後の拠点在庫プールを計算
+  const localBottomLidPool = adjBottom + adjLid + adjRolls * standardRollConfig.piecesPerRoll;
+  const localPailBottomLidPool = adjPailBottom + adjPailLid + adjPailRolls * pailRollConfig.piecesPerRoll;
 
   // 不足分を計算（マイナスの場合は0）
-  const bodyShortage = Math.max(0, totalBodyRequired - localInventory.body);
-  const pailBodyShortage = Math.max(0, totalPailBodyRequired - localInventory.pailBody);
+  const bodyShortage = Math.max(0, totalBodyRequired - adjBody);
+  const pailBodyShortage = Math.max(0, totalPailBodyRequired - adjPailBody);
   const bottomLidShortage = Math.max(0, totalBottomLidRequired - localBottomLidPool);
   const pailBottomLidShortage = Math.max(
     0,
@@ -470,11 +623,15 @@ export function calculateMonthlyOrderRecommendation(
   );
 
   // 発注推奨量を各単位で計算
+  const bottomLidRolls = Math.ceil(bottomLidShortage / standardRollConfig.piecesPerRoll);
+  const pailBottomLidRolls = Math.ceil(pailBottomLidShortage / pailRollConfig.piecesPerRoll);
+
   const recommendedOrder = {
-    // 既存製品
+    // WIP製品
     bodySets: bodyShortage,
     bottomLidPieces: bottomLidShortage,
-    bottomLidRolls: Math.ceil(bottomLidShortage / standardRollConfig.piecesPerRoll),
+    bottomLidRolls,
+    bottomLidMeters: bottomLidRolls * 200,
     estimatedSets: Math.ceil(
       Math.max(bodyShortage, bottomLidShortage / 2) // おおよそのセット数
     ),
@@ -482,7 +639,8 @@ export function calculateMonthlyOrderRecommendation(
     // ペール製品
     pailBodySets: pailBodyShortage,
     pailBottomLidPieces: pailBottomLidShortage,
-    pailBottomLidRolls: Math.ceil(pailBottomLidShortage / pailRollConfig.piecesPerRoll),
+    pailBottomLidRolls,
+    pailBottomLidMeters: pailBottomLidRolls * 200,
     pailEstimatedSets: Math.ceil(
       Math.max(pailBodyShortage, pailBottomLidShortage / 2)
     ),
@@ -500,8 +658,8 @@ export function calculateMonthlyOrderRecommendation(
       pailBottomLid: totalPailBottomLidRequired,
     },
     localInventory: {
-      body: localInventory.body,
-      pailBody: localInventory.pailBody,
+      body: adjBody,
+      pailBody: adjPailBody,
       bottomLid: localBottomLidPool,
       pailBottomLid: localPailBottomLidPool,
     },

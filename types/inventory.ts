@@ -129,6 +129,8 @@ export interface InventorySnapshot {
   // 不足数（足りない場合の不足量）
   bodyShortage: number;
   bottomLidShortage: number;
+  bottomShortage: number;  // 底の生産必要数（個別）
+  lidShortage: number;     // 蓋の生産必要数（個別）
 
   // 2段階引当情報
   allocationStatus: AllocationStatus; // 引当ステータス
@@ -162,12 +164,12 @@ export interface InventorySummary {
 export function getTotalInventory(inventory: Inventory): LocationInventory {
   return {
     body: inventory.office.body + inventory.sugisaki.body + inventory.manufacturer.body,
-    bottom: inventory.office.bottom + inventory.sugisaki.bottom + inventory.manufacturer.bottom,
-    lid: inventory.office.lid + inventory.sugisaki.lid + inventory.manufacturer.lid,
+    bottom: inventory.office.bottom + inventory.sugisaki.bottom, // メーカーは底カット済み在庫なし
+    lid: inventory.office.lid + inventory.sugisaki.lid,           // メーカーは蓋カット済み在庫なし
     rolls: inventory.office.rolls + inventory.sugisaki.rolls + inventory.manufacturer.rolls,
     pailBody: inventory.office.pailBody + inventory.sugisaki.pailBody + inventory.manufacturer.pailBody,
-    pailBottom: inventory.office.pailBottom + inventory.sugisaki.pailBottom + inventory.manufacturer.pailBottom,
-    pailLid: inventory.office.pailLid + inventory.sugisaki.pailLid + inventory.manufacturer.pailLid,
+    pailBottom: inventory.office.pailBottom + inventory.sugisaki.pailBottom, // メーカーは底カット済み在庫なし
+    pailLid: inventory.office.pailLid + inventory.sugisaki.pailLid,           // メーカーは蓋カット済み在庫なし
     pailRolls: inventory.office.pailRolls + inventory.sugisaki.pailRolls + inventory.manufacturer.pailRolls,
   };
 }
