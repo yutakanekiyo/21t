@@ -94,6 +94,7 @@ export interface InventorySnapshot {
   orderNumber: string;           // 受注番号
   customerName: string;          // 顧客名
   deliveryDate: string;          // 納期
+  productType: 'standard' | 'pail'; // 製品タイプ
   setQuantity: number;           // セット数
   additionalLids: number;        // 追加蓋数
 
@@ -118,6 +119,19 @@ export interface InventorySnapshot {
     bottom: number;
     lid: number;
     rolls: number;
+    bottomLidPool: number;
+  };
+
+  // ローカルのみの処理後在庫（事務所+杉崎のみ、メーカー除く）
+  localAfterInventory: {
+    body: number;   // マイナス＝ローカル在庫が不足
+    bottom: number; // マイナス＝直接底枚数が不足（ロールからの切り出し、またはメーカー補充が必要）
+    lid: number;    // マイナス＝直接蓋枚数が不足（ロールからの切り出し、またはメーカー補充が必要）
+  };
+
+  // トータル余力（ローカル+メーカーを含む残量）
+  surplus: {
+    body: number;
     bottomLidPool: number;
   };
 

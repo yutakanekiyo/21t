@@ -22,16 +22,24 @@ export const DEFAULT_ROLL_CONFIG: RollConversionConfig = {
  *
  * ペール専用の歩留まりロジック：
  * - ボディ: 10ロール（メーカー在庫）→ 約3,700枚
- * - 底・蓋: 1ロール（200m）から、底（305mm）と蓋（330mm）をセットで約630個
+ * - 底: 1ロール（200m）から655枚（200m / 0.305m）
+ * - 蓋: 1ロール（200m）から606枚（200m / 0.330m）
+ * piecesPerRoll は底の歩留まり（655）を基準値として使用
  */
 export const PAIL_ROLL_CONFIG: RollConversionConfig = {
   rollLength: 200,              // ロール長さ（m）
-  piecesPerMeter: 3.15,         // 1mあたり3.15枚（計算: 630 ÷ 200）
-  piecesPerRoll: 630,           // 1本あたり630セット（底+蓋）
+  piecesPerMeter: 3.275,        // 1mあたり3.275枚（計算: 655 ÷ 200）
+  piecesPerRoll: 655,           // 1本あたり655枚（底の歩留まりを基準）
   bottomCutLength: 305,         // 底の切り出し長さ（mm）
   lidCutLength: 330,            // 蓋の切り出し長さ（mm）
   averageCutLength: 0.318,      // 平均切り出し長さ（m）約318mm
 };
+
+/**
+ * ペール製品のロール歩留まり定数（底と蓋で異なる）
+ */
+export const PAIL_BOTTOM_PIECES_PER_ROLL = 655; // 200m / 0.305m
+export const PAIL_LID_PIECES_PER_ROLL = 606;    // 200m / 0.330m
 
 /**
  * ペールボディの換算設定
@@ -49,8 +57,8 @@ export const PAIL_BODY_CONFIG = {
 export const PRODUCTS = [
   {
     id: 'standard' as ProductType,
-    name: '既存製品',
-    description: 'ボディ・底・蓋のセット製品',
+    name: 'WIP',
+    description: 'ボディと底のセット製品（蓋は独立）',
   },
   {
     id: 'pail' as ProductType,

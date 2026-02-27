@@ -17,6 +17,9 @@ import { LOCATIONS } from "@/utils/constants";
 
 type ProductTypeTab = 'standard' | 'pail';
 
+// メーカーを除いた拠点のみ表示
+const ADJUSTABLE_LOCATIONS = LOCATIONS.filter((l) => l.id !== 'manufacturer');
+
 interface InventoryAdjustmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,7 +39,6 @@ export function InventoryAdjustmentDialog({
     manufacturer: { ...inventory.manufacturer },
   });
 
-  // 選択された拠点と製品タイプ
   const [selectedLocation, setSelectedLocation] = useState<LocationType>('office');
   const [selectedProductType, setSelectedProductType] = useState<ProductTypeTab>('standard');
 
@@ -67,16 +69,17 @@ export function InventoryAdjustmentDialog({
           <DialogHeader>
             <DialogTitle>在庫調整</DialogTitle>
             <DialogDescription>
-              拠点と製品タイプを選択して、在庫数を直接入力できます
+              拠点（事務所・杉崎）と製品タイプを選択して在庫数を直接入力できます。
+              メーカー在庫は「メーカー在庫一括更新」から更新してください。
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* 拠点選択タブ */}
+            {/* 拠点選択タブ（メーカーを除く） */}
             <div>
               <Label className="text-sm font-medium mb-2 block">拠点を選択</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {LOCATIONS.map((location) => (
+              <div className="grid grid-cols-2 gap-2">
+                {ADJUSTABLE_LOCATIONS.map((location) => (
                   <button
                     key={location.id}
                     type="button"
@@ -106,7 +109,7 @@ export function InventoryAdjustmentDialog({
                       : 'bg-muted hover:bg-muted/80'
                   }`}
                 >
-                  既存製品
+                  WIP
                 </button>
                 <button
                   type="button"
@@ -125,13 +128,13 @@ export function InventoryAdjustmentDialog({
             {/* 選択された拠点と製品タイプの在庫入力フィールド */}
             <div className="border rounded-lg p-4 bg-muted/30">
               <div className="text-sm font-medium mb-3">
-                {LOCATIONS.find(l => l.id === selectedLocation)?.name} - {selectedProductType === 'standard' ? '既存製品' : 'ペール製品'}
+                {LOCATIONS.find(l => l.id === selectedLocation)?.name} - {selectedProductType === 'standard' ? 'WIP' : 'ペール製品'}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {selectedProductType === 'standard' ? (
                   <>
                     <div>
-                      <Label htmlFor="body">ボディ（個）</Label>
+                      <Label htmlFor="body">ボディ（枚）</Label>
                       <Input
                         id="body"
                         type="number"
@@ -178,7 +181,7 @@ export function InventoryAdjustmentDialog({
                 ) : (
                   <>
                     <div>
-                      <Label htmlFor="pailBody">ボディ（個）</Label>
+                      <Label htmlFor="pailBody">ボディ（枚）</Label>
                       <Input
                         id="pailBody"
                         type="number"

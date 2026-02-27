@@ -143,6 +143,79 @@ export async function deleteOrder(id: string): Promise<void> {
 }
 
 /**
+ * 受注完了処理（事務所在庫からボディ・底・蓋を直接減算）
+ */
+export async function completeOrderWithInventoryDeduction(
+  orderId: string,
+  productType: "standard" | "pail",
+  setQuantity: number,
+  additionalLids: number
+): Promise<void> {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("認証が必要です");
+  }
+
+  console.log("completeOrderWithInventoryDeduction:", { orderId, productType, setQuantity, additionalLids });
+
+  // 現在の事務所在庫を取得
+  const { data: inv, error: fetchError } = await supabase
+    .from("inventories")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  if (fetchError || !inv) {
+    throw new Error(`在庫の取得に失敗しました: ${fetchError?.message ?? "データなし"}`);
+  }
+
+  // 事務所在庫から減算するフィールドを構築
+  const updateFields =
+    productType === "pail"
+      ? {
+          office_pail_body: Math.max(0, (inv.office_pail_body || 0) - setQuantity),
+          office_pail_bottom: Math.max(0, (inv.office_pail_bottom || 0) - setQuantity),
+          office_pail_lid: Math.max(0, (inv.office_pail_lid || 0) - additionalLids),
+          last_updated: new Date().toISOString(),
+        }
+      : {
+          office_body: Math.max(0, (inv.office_body || 0) - setQuantity),
+          office_bottom: Math.max(0, (inv.office_bottom || 0) - setQuantity),
+          office_lid: Math.max(0, (inv.office_lid || 0) - additionalLids),
+          last_updated: new Date().toISOString(),
+        };
+
+  console.log("updateFields:", updateFields);
+
+  // 在庫を更新
+  const { error: invError } = await supabase
+    .from("inventories")
+    .update(updateFields)
+    .eq("user_id", userId);
+
+  if (invError) {
+    throw new Error(`在庫の更新に失敗しました: ${invError.message}`);
+  }
+
+  // 受注ステータスを完了に更新
+  const { error: orderError } = await supabase
+    .from("orders")
+    .update({
+      status: "completed",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId)
+    .eq("user_id", userId);
+
+  if (orderError) {
+    throw new Error(`受注の更新に失敗しました: ${orderError.message}`);
+  }
+
+  console.log("completeOrderWithInventoryDeduction: success");
+  revalidatePath("/dashboard");
+}
+
+/**
  * 受注のステータスを更新
  */
 export async function updateOrderStatus(

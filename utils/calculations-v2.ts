@@ -31,6 +31,10 @@ export function calculateInventorySnapshotsV2(
     return compareDates(a.createdAt, b.createdAt);
   });
 
+  // 完了・アーカイブ済みは在庫減算が完了しているため累積計算から除外
+  const activeOrders = sortedOrders.filter(o => o.status === 'active');
+  const inactiveOrders = sortedOrders.filter(o => o.status !== 'active');
+
   // 2. 初期在庫をセット
   const localInventory = getLocalInventory(currentInventory);
   const manufacturerInventory = currentInventory.manufacturer;
@@ -57,6 +61,22 @@ export function calculateInventorySnapshotsV2(
 
   const snapshots: InventorySnapshot[] = [];
 
+  // ローカルのみ表示用: 初期ローカル在庫を記録（累積必要数との差分でローカル残量を算出）
+  const initLocalBody = localBody;
+  const initLocalPailBody = localPailBody;
+  const initLocalBottom = localBottom;
+  const initLocalLid = localLid;
+  const initLocalPailBottom = localPailBottom;
+  const initLocalPailLid = localPailLid;
+
+  // ローカルのみ表示用: 累積必要数（ローカル在庫と比較してローカル残量を算出）
+  let cumBodyRequired = 0;
+  let cumPailBodyRequired = 0;
+  let cumBottomRequired = 0;
+  let cumLidRequired = 0;
+  let cumPailBottomRequired = 0;
+  let cumPailLidRequired = 0;
+
   // 累積不足数（納期順に積み上がり、次受注の beforeInventory に引き継がれる）
   // pail と standard は在庫プールが別なので独立して管理
   let cumBodyDeficit = 0;
@@ -66,8 +86,8 @@ export function calculateInventorySnapshotsV2(
   let cumPailBottomDeficit = 0;
   let cumPailLidDeficit = 0;
 
-  // 3. 各受注を処理
-  for (const order of sortedOrders) {
+  // 3. アクティブ受注のみ累積ウォーターフォール計算
+  for (const order of activeOrders) {
     const isPail = order.productType === 'pail';
     const rollConfig = isPail ? PAIL_ROLL_CONFIG : config;
 
@@ -241,6 +261,17 @@ export function calculateInventorySnapshotsV2(
       allocationStatus = 'local_ok';
     }
 
+    // ローカルのみ表示用: 累積必要数を更新
+    if (isPail) {
+      cumPailBodyRequired += requiredBody;
+      cumPailBottomRequired += order.setQuantity;
+      cumPailLidRequired += order.additionalLids;
+    } else {
+      cumBodyRequired += requiredBody;
+      cumBottomRequired += order.setQuantity;
+      cumLidRequired += order.additionalLids;
+    }
+
     // 累積不足数を更新（この受注の不足分を次受注に引き継ぐ）
     if (isPail) {
       cumPailBodyDeficit += bodyProductionNeeded;
@@ -267,6 +298,17 @@ export function calculateInventorySnapshotsV2(
       : localRolls + mfrRolls;
     const totalBottomLidPoolAfter =
       totalBottomAfter + totalLidAfter + totalRollsAfter * rollConfig.piecesPerRoll;
+
+    // ローカルのみの処理後在庫（初期ローカル在庫 - 累積必要数）
+    const localBodyAfterDisplay = isPail
+      ? initLocalPailBody - cumPailBodyRequired
+      : initLocalBody - cumBodyRequired;
+    const localBottomAfterDisplay = isPail
+      ? initLocalPailBottom - cumPailBottomRequired
+      : initLocalBottom - cumBottomRequired;
+    const localLidAfterDisplay = isPail
+      ? initLocalPailLid - cumPailLidRequired
+      : initLocalLid - cumLidRequired;
 
     // スナップショット作成
     const snapshot: InventorySnapshot = {
@@ -315,9 +357,49 @@ export function calculateInventorySnapshotsV2(
         body: bodyProductionNeeded,
         bottomLid: bottomLidProductionNeeded,
       },
+      localAfterInventory: {
+        body: localBodyAfterDisplay,
+        bottom: localBottomAfterDisplay,
+        lid: localLidAfterDisplay,
+      },
+      surplus: {
+        body: totalBodyAfter,
+        bottomLidPool: totalBottomLidPoolAfter,
+      },
     };
 
     snapshots.push(snapshot);
+  }
+
+  // 4. 完了・アーカイブ済み受注のニュートラルスナップショットを追加（表示用）
+  for (const order of inactiveOrders) {
+    const isPail = order.productType === 'pail';
+    const emptyPool = { body: 0, bottom: 0, lid: 0, rolls: 0, bottomLidPool: 0 };
+    snapshots.push({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      deliveryDate: order.deliveryDate,
+      productType: isPail ? 'pail' : 'standard',
+      setQuantity: order.setQuantity,
+      additionalLids: order.additionalLids,
+      beforeInventory: emptyPool,
+      required: { body: order.setQuantity, bottomLid: order.setQuantity + order.additionalLids },
+      afterInventory: emptyPool,
+      isBodySufficient: true,
+      isBottomLidSufficient: true,
+      isAllSufficient: true,
+      bodyShortage: 0,
+      bottomLidShortage: 0,
+      bottomShortage: 0,
+      lidShortage: 0,
+      allocationStatus: 'local_ok',
+      localInventoryUsed: { body: 0, bottomLid: 0 },
+      manufacturerInventoryUsed: { body: 0, bottomLid: 0 },
+      productionNeeded: { body: 0, bottomLid: 0 },
+      localAfterInventory: { body: 0, bottom: 0, lid: 0 },
+      surplus: { body: 0, bottomLidPool: 0 },
+    });
   }
 
   return snapshots;

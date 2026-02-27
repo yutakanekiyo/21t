@@ -6,8 +6,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Edit, Trash2, Check, Archive, RotateCcw } from "lucide-react";
 import { formatDate } from "@/utils/dateUtils";
+import { completeOrderWithInventoryDeduction } from "@/lib/actions/orders";
 
 interface OrderItemProps {
   order: Order;
@@ -18,18 +27,67 @@ interface OrderItemProps {
 }
 
 export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }: OrderItemProps) {
+  const [isPendingComplete, setIsPendingComplete] = useState(false);
+  const [blockMessage, setBlockMessage] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
 
   const handleDeleteClick = () => setShowDeleteDialog(true);
-  const handleCompleteClick = () => setShowCompleteDialog(true);
   const handleArchiveClick = () => setShowArchiveDialog(true);
   const handleReactivateClick = () => setShowReactivateDialog(true);
 
+  // 完了可否チェック：local_ok かつ切り出し不要な場合のみ完了可能
+  const getCompletionBlockReason = (): string | null => {
+    if (snapshot.allocationStatus === 'production_needed') {
+      return "完了できません。\nメーカーへの生産依頼が必要です。在庫（メーカー含む）が不足しているため、先にメーカーへ生産を依頼してください。";
+    }
+    if (snapshot.allocationStatus === 'manufacturer_pickup') {
+      return "完了できません。\n発注が必要です。ローカル在庫では不足しているため、入荷予定を登録し入荷完了後に再度お試しください。";
+    }
+    // local_ok だが切り出しが必要なケース
+    const issues: string[] = [];
+    if (snapshot.localAfterInventory.bottom < 0) {
+      issues.push(`底: ${Math.abs(snapshot.localAfterInventory.bottom).toLocaleString()}枚の切り出しが必要`);
+    }
+    if (snapshot.localAfterInventory.lid < 0) {
+      issues.push(`蓋: ${Math.abs(snapshot.localAfterInventory.lid).toLocaleString()}枚の切り出しが必要`);
+    }
+    if (issues.length > 0) {
+      return `完了できません。ロールからの切り出しが必要です。\n${issues.join('\n')}\n切り出し後に在庫を更新してから再度お試しください。`;
+    }
+    return null;
+  };
+
+  const handleCompleteClick = () => {
+    const blockReason = getCompletionBlockReason();
+    if (blockReason) {
+      setBlockMessage(blockReason);
+      return;
+    }
+    setShowCompleteDialog(true);
+  };
+
+  const handleConfirmComplete = async () => {
+    setIsPendingComplete(true);
+    try {
+      await completeOrderWithInventoryDeduction(
+        order.id,
+        order.productType,
+        order.setQuantity,
+        order.additionalLids
+      );
+      alert("受注を完了しました。事務所在庫から減算されました。");
+      window.location.reload();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "不明なエラー";
+      setBlockMessage(`完了処理に失敗しました:\n${msg}`);
+      setIsPendingComplete(false);
+    }
+  };
+
   const handleConfirmDelete = () => onDelete(order.id);
-  const handleConfirmComplete = () => onUpdateStatus?.(order.id, 'completed');
   const handleConfirmArchive = () => onUpdateStatus?.(order.id, 'archived');
   const handleConfirmReactivate = () => onUpdateStatus?.(order.id, 'active');
 
@@ -79,10 +137,11 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
                   variant="outline"
                   size="sm"
                   onClick={handleCompleteClick}
+                  disabled={isPendingComplete}
                   className="text-green-600 hover:text-green-700"
                 >
                   <Check className="h-4 w-4 mr-1" />
-                  完了
+                  {isPendingComplete ? "処理中..." : "完了"}
                 </Button>
                 <Button
                   variant="outline"
@@ -171,36 +230,77 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
 
           <div className="pt-2 border-t">
             {(() => {
-              const bodyAfter = snapshot.afterInventory.body;
-              const bottomAfter = snapshot.afterInventory.bottom;
-              const lidAfter = snapshot.afterInventory.lid;
-              const isManufacturerPickup = snapshot.allocationStatus === 'manufacturer_pickup';
-              const negativeClass = isManufacturerPickup
+              const bodyLocal = snapshot.localAfterInventory.body;
+              const bottomLocal = snapshot.localAfterInventory.bottom;
+              const lidLocal = snapshot.localAfterInventory.lid;
+              const surplusBody = snapshot.surplus.body;
+              const surplusBottomLid = snapshot.surplus.bottomLidPool;
+              const status = snapshot.allocationStatus;
+
+              // ボディ: 不足 = メーカー補充 or 生産必要
+              const bodyNegClass = status === 'manufacturer_pickup'
                 ? 'text-amber-600 font-semibold'
                 : 'text-destructive font-semibold';
-              const renderValue = (value: number) =>
+
+              // 底・蓋: ローカルOKでも切り出し必要なら青、発注/生産必要ならamber/red
+              const bottomLidNegClass =
+                status === 'local_ok'
+                  ? 'text-blue-600 font-semibold'
+                  : status === 'manufacturer_pickup'
+                  ? 'text-amber-600 font-semibold'
+                  : 'text-destructive font-semibold';
+
+              const renderBodyValue = (value: number) => `${value.toLocaleString()}枚`;
+              const renderBottomLidValue = (value: number) =>
                 value < 0
                   ? `${value.toLocaleString()}枚（要カット: ${Math.abs(value).toLocaleString()}枚）`
                   : `${value.toLocaleString()}枚`;
+
               return (
                 <>
-                  <div className="flex justify-between">
+                  {/* ボディ */}
+                  <div className="flex justify-between items-start">
                     <span className="text-muted-foreground">処理後ボディ:</span>
-                    <span className={bodyAfter < 0 ? negativeClass : ''}>
-                      {renderValue(bodyAfter)}
-                    </span>
+                    <div className="text-right">
+                      <span className={bodyLocal < 0 ? bodyNegClass : ''}>
+                        {renderBodyValue(bodyLocal)}
+                      </span>
+                      {bodyLocal < 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          (トータル余力: {surplusBody.toLocaleString()}枚)
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex justify-between">
+
+                  {/* 底 */}
+                  <div className="flex justify-between items-start">
                     <span className="text-muted-foreground">処理後底:</span>
-                    <span className={bottomAfter < 0 ? negativeClass : ''}>
-                      {renderValue(bottomAfter)}
-                    </span>
+                    <div className="text-right">
+                      <span className={bottomLocal < 0 ? bottomLidNegClass : ''}>
+                        {renderBottomLidValue(bottomLocal)}
+                      </span>
+                      {bottomLocal < 0 && status !== 'local_ok' && (
+                        <p className="text-xs text-muted-foreground">
+                          (トータル余力: {surplusBottomLid.toLocaleString()}枚)
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex justify-between">
+
+                  {/* 蓋 */}
+                  <div className="flex justify-between items-start">
                     <span className="text-muted-foreground">処理後蓋:</span>
-                    <span className={lidAfter < 0 ? negativeClass : ''}>
-                      {renderValue(lidAfter)}
-                    </span>
+                    <div className="text-right">
+                      <span className={lidLocal < 0 ? bottomLidNegClass : ''}>
+                        {renderBottomLidValue(lidLocal)}
+                      </span>
+                      {lidLocal < 0 && status !== 'local_ok' && (
+                        <p className="text-xs text-muted-foreground">
+                          (トータル余力: {surplusBottomLid.toLocaleString()}枚)
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </>
               );
@@ -215,6 +315,21 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
           </div>
         )}
       </CardContent>
+
+      {/* 完了ブロック理由ダイアログ */}
+      <Dialog open={!!blockMessage} onOpenChange={(open) => !open && setBlockMessage(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>完了できません</DialogTitle>
+            <DialogDescription className="whitespace-pre-line">
+              {blockMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setBlockMessage(null)}>閉じる</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 完了確認ダイアログ */}
       <ConfirmDialog

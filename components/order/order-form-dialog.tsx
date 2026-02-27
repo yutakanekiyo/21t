@@ -179,7 +179,7 @@ export function OrderFormDialog({
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="setQuantity" className="text-right">
-                セット数 <span className="text-destructive">*</span>
+                セット数（ボディと底の枚数） <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="setQuantity"
@@ -199,14 +199,14 @@ export function OrderFormDialog({
                 }}
                 onFocus={(e) => e.target.select()}
                 className="col-span-3"
-                placeholder="ボディ・底・蓋各1のセット数"
+                placeholder="ボディと底の枚数"
                 required
               />
             </div>
 
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="additionalLids" className="text-right">
-                追加蓋数
+                蓋数（トータル）
               </Label>
               <Input
                 id="additionalLids"
