@@ -4,7 +4,6 @@ import { useState, useOptimistic, useTransition } from "react";
 import { Order, Inventory, OrderFormData, IncomingDelivery, OrderStatus } from "@/types";
 import { MultiLocationInventoryPanel } from "@/components/inventory/multi-location-inventory-panel";
 import { OrderList } from "./order-list";
-import { InventoryAlert } from "./inventory-alert";
 import { IncomingDeliveryPanel } from "@/components/incoming-delivery/incoming-delivery-panel";
 import { MonthlyOrderRecommendationPanel } from "./monthly-order-recommendation";
 import { ManufacturerStockAlert } from "./manufacturer-stock-alert";
@@ -153,9 +152,6 @@ export function Dashboard({
 
       {/* メーカー生産アラート */}
       <ManufacturerStockAlert snapshots={snapshots} />
-
-      {/* 在庫不足アラート */}
-      <InventoryAlert summary={summary} />
 
       {/* 受注一覧 */}
       <OrderList

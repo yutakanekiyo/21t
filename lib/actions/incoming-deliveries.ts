@@ -186,10 +186,18 @@ export async function completeIncomingDelivery(id: string): Promise<void> {
 
   const updatedInventory = {
     ...currentInventory,
+    // 入荷先に加算
     [location]: {
       ...currentInventory[location],
       [itemKey]: currentInventory[location][itemKey] + quantity,
     },
+    // メーカー在庫から減算（入荷先がメーカー自身の場合は二重操作を避ける）
+    ...(location !== "manufacturer" && {
+      manufacturer: {
+        ...currentInventory.manufacturer,
+        [itemKey]: Math.max(0, currentInventory.manufacturer[itemKey] - quantity),
+      },
+    }),
   };
 
   console.log("Updated inventory:", updatedInventory);

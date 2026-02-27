@@ -23,65 +23,79 @@ interface IncomingDeliveryFormDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const ITEM_TYPES = [
-  // 既存製品
-  { id: "body" as ItemType, name: "ボディ（既存）", unit: "個" },
-  { id: "bottom" as ItemType, name: "底（既存）", unit: "枚" },
-  { id: "lid" as ItemType, name: "蓋（既存）", unit: "枚" },
-  { id: "rolls" as ItemType, name: "ロール（既存）", unit: "本" },
-  // ペール製品
-  { id: "pailBody" as ItemType, name: "ボディ（ペール）", unit: "個" },
-  { id: "pailBottom" as ItemType, name: "底（ペール）", unit: "枚" },
-  { id: "pailLid" as ItemType, name: "蓋（ペール）", unit: "枚" },
-  { id: "pailRolls" as ItemType, name: "ロール（ペール）", unit: "本" },
-];
+const PRODUCT_TYPES = [
+  { id: "wip", name: "WIP" },
+  { id: "pail", name: "ペール" },
+] as const;
+
+const ITEM_KINDS = [
+  { id: "body", name: "ボディ", unit: "枚" },
+  { id: "rolls", name: "ロール", unit: "m" },
+] as const;
+
+type ProductType = "wip" | "pail";
+type ItemKind = "body" | "rolls";
+
+function toItemType(productType: ProductType, itemKind: ItemKind): ItemType {
+  if (productType === "wip") return itemKind === "body" ? "body" : "rolls";
+  return itemKind === "body" ? "pailBody" : "pailRolls";
+}
 
 export function IncomingDeliveryFormDialog({
   open,
   onOpenChange,
 }: IncomingDeliveryFormDialogProps) {
   const [isPending, startTransition] = useTransition();
-  const [formData, setFormData] = useState<IncomingDeliveryFormData>({
-    location: "manufacturer",
-    itemType: "body",
+  const [productType, setProductType] = useState<ProductType>("wip");
+  const [itemKind, setItemKind] = useState<ItemKind>("body");
+  const [formData, setFormData] = useState<Omit<IncomingDeliveryFormData, "itemType">>({
+    location: "office",
     quantity: 0,
     scheduledDate: formatDateISO(new Date()),
     notes: "",
   });
 
+  const unit = itemKind === "rolls" ? "m" : "枚";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // バリデーション
     if (formData.quantity <= 0) {
       alert("数量は1以上を入力してください");
       return;
     }
-
     if (!formData.scheduledDate) {
       alert("入荷予定日を入力してください");
       return;
     }
 
+    // ロールはm入力→本数に変換（200m = 1本）
+    const quantity =
+      itemKind === "rolls"
+        ? Math.ceil(formData.quantity / 200)
+        : formData.quantity;
+
+    const submitData: IncomingDeliveryFormData = {
+      ...formData,
+      itemType: toItemType(productType, itemKind),
+      quantity,
+    };
+
     startTransition(async () => {
       try {
-        console.log("入荷予定追加:", formData);
-        await addIncomingDelivery(formData);
-        console.log("入荷予定追加成功");
+        await addIncomingDelivery(submitData);
         alert("入荷予定を追加しました");
         onOpenChange(false);
-        // フォームをリセット
+        setProductType("wip");
+        setItemKind("body");
         setFormData({
-          location: "manufacturer",
-          itemType: "body",
+          location: "office",
           quantity: 0,
           scheduledDate: formatDateISO(new Date()),
           notes: "",
         });
-        // ページをリロードして反映
         window.location.reload();
       } catch (error) {
-        console.error("入荷予定追加エラー:", error);
         const errorMessage =
           error instanceof Error ? error.message : "不明なエラー";
         alert(`入荷予定の追加に失敗しました: ${errorMessage}`);
@@ -90,7 +104,7 @@ export function IncomingDeliveryFormDialog({
   };
 
   const handleChange = (
-    field: keyof IncomingDeliveryFormData,
+    field: keyof Omit<IncomingDeliveryFormData, "itemType">,
     value: string | number
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -119,7 +133,7 @@ export function IncomingDeliveryFormDialog({
                   handleChange("location", e.target.value as LocationType)
                 }
               >
-                {LOCATIONS.map((loc) => (
+                {LOCATIONS.filter((loc) => loc.id !== "manufacturer").map((loc) => (
                   <option key={loc.id} value={loc.id}>
                     {loc.name}
                   </option>
@@ -127,20 +141,35 @@ export function IncomingDeliveryFormDialog({
               </select>
             </div>
 
-            {/* アイテムタイプ */}
+            {/* 製品タイプ */}
             <div>
-              <Label htmlFor="itemType">アイテム</Label>
+              <Label htmlFor="productType">製品タイプ</Label>
               <select
-                id="itemType"
+                id="productType"
                 className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                value={formData.itemType}
-                onChange={(e) =>
-                  handleChange("itemType", e.target.value as ItemType)
-                }
+                value={productType}
+                onChange={(e) => setProductType(e.target.value as ProductType)}
               >
-                {ITEM_TYPES.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}（{item.unit}）
+                {PRODUCT_TYPES.map((pt) => (
+                  <option key={pt.id} value={pt.id}>
+                    {pt.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* アイテム */}
+            <div>
+              <Label htmlFor="itemKind">アイテム</Label>
+              <select
+                id="itemKind"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={itemKind}
+                onChange={(e) => setItemKind(e.target.value as ItemKind)}
+              >
+                {ITEM_KINDS.map((ik) => (
+                  <option key={ik.id} value={ik.id}>
+                    {ik.name}
                   </option>
                 ))}
               </select>
@@ -148,18 +177,26 @@ export function IncomingDeliveryFormDialog({
 
             {/* 数量 */}
             <div>
-              <Label htmlFor="quantity">数量</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={formData.quantity}
-                onChange={(e) =>
-                  handleChange("quantity", parseInt(e.target.value) || 0)
-                }
-                onFocus={(e) => e.target.select()}
-                placeholder="入荷予定の数量を入力"
-              />
+              <Label htmlFor="quantity">数量（{unit}）</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  value={formData.quantity}
+                  onChange={(e) =>
+                    handleChange("quantity", parseInt(e.target.value) || 0)
+                  }
+                  onFocus={(e) => e.target.select()}
+                  placeholder={`入荷予定の数量を入力（${unit}）`}
+                />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{unit}</span>
+              </div>
+              {itemKind === "rolls" && formData.quantity > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  = {Math.ceil(formData.quantity / 200)}本
+                </p>
+              )}
             </div>
 
             {/* 入荷予定日 */}

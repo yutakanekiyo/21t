@@ -20,10 +20,10 @@ interface IncomingDeliveryItemProps {
 }
 
 const ITEM_TYPE_NAMES: Record<string, string> = {
-  body: "ボディ（既存）",
-  bottom: "底（既存）",
-  lid: "蓋（既存）",
-  rolls: "ロール（既存）",
+  body: "ボディ（WIP）",
+  bottom: "底（WIP）",
+  lid: "蓋（WIP）",
+  rolls: "ロール（WIP）",
   pailBody: "ボディ（ペール）",
   pailBottom: "底（ペール）",
   pailLid: "蓋（ペール）",
@@ -44,15 +44,15 @@ const ITEM_TYPE_UNITS: Record<string, string> = {
 // 拠点ごとの色設定（カレンダーと同じ）
 const LOCATION_COLORS = {
   office: {
-    border: "border-l-blue-500",
+    border: "border-blue-500",
     bg: "bg-blue-50/50",
   },
   sugisaki: {
-    border: "border-l-purple-500",
+    border: "border-purple-500",
     bg: "bg-purple-50/50",
   },
   manufacturer: {
-    border: "border-l-orange-500",
+    border: "border-orange-500",
     bg: "bg-orange-50/50",
   },
 };
@@ -125,8 +125,8 @@ export function IncomingDeliveryItem({ delivery }: IncomingDeliveryItemProps) {
   };
 
   return (
-    <Card className={`border-l-4 ${locationColors.border} ${locationColors.bg} ${
-      isOverdue ? "border-t-2 border-t-red-500" : ""
+    <Card className={`border-2 ${locationColors.border} ${locationColors.bg} ${
+      isOverdue ? "border-red-500" : ""
     }`}>
       <CardContent className="pt-4">
         <div className="flex items-start justify-between mb-3">

@@ -62,43 +62,39 @@ export function MonthlyOrderRecommendationPanel({
             <Badge variant="secondary">{affectedOrders.length}件の受注</Badge>
           </div>
 
-          {/* 既存製品の発注推奨 */}
+          {/* WIP製品の発注推奨 */}
           {(shortage.body > 0 || shortage.bottomLid > 0) && (
             <Card className="border-orange-300 bg-white">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Package className="h-4 w-4" />
-                  既存製品の発注推奨量
+                  WIP製品の発注推奨量
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {shortage.body > 0 && (
                   <div className="bg-orange-100 p-3 rounded-md">
-                    <p className="text-xs text-orange-800 mb-1">ボディ不足</p>
+                    <p className="text-xs text-orange-700 mb-1">ボディ</p>
                     <p className="text-2xl font-bold text-orange-900">
                       {recommendedOrder.bodySets.toLocaleString()}
-                      <span className="text-base font-normal ml-1">個</span>
+                      <span className="text-base font-normal ml-1">枚</span>
                     </p>
                   </div>
                 )}
 
                 {shortage.bottomLid > 0 && (
                   <div className="bg-orange-100 p-3 rounded-md">
-                    <p className="text-xs text-orange-800 mb-1">底・蓋不足</p>
+                    <p className="text-xs text-orange-700 mb-1">ロール</p>
                     <div className="space-y-1">
                       <p className="text-2xl font-bold text-orange-900">
-                        {recommendedOrder.bottomLidRolls.toLocaleString()}
-                        <span className="text-base font-normal ml-1">本</span>
+                        {recommendedOrder.bottomLidMeters.toLocaleString()}
+                        <span className="text-base font-normal ml-1">m</span>
                         <span className="text-sm font-normal text-orange-700 ml-2">
-                          （ロール）
+                          （{recommendedOrder.bottomLidRolls.toLocaleString()}本）
                         </span>
                       </p>
                       <p className="text-sm text-orange-700">
                         = {recommendedOrder.bottomLidPieces.toLocaleString()}枚
-                      </p>
-                      <p className="text-xs text-orange-600">
-                        ※ おおよそ {recommendedOrder.estimatedSets.toLocaleString()}
-                        セット分
                       </p>
                     </div>
                   </div>
@@ -109,7 +105,7 @@ export function MonthlyOrderRecommendationPanel({
 
           {/* ペール製品の発注推奨 */}
           {(shortage.pailBody > 0 || shortage.pailBottomLid > 0) && (
-            <Card className="border-purple-300 bg-white">
+            <Card className="border-amber-300 bg-white">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Package className="h-4 w-4" />
@@ -118,33 +114,28 @@ export function MonthlyOrderRecommendationPanel({
               </CardHeader>
               <CardContent className="space-y-2">
                 {shortage.pailBody > 0 && (
-                  <div className="bg-purple-100 p-3 rounded-md">
-                    <p className="text-xs text-purple-800 mb-1">ボディ不足</p>
-                    <p className="text-2xl font-bold text-purple-900">
+                  <div className="bg-amber-100 p-3 rounded-md">
+                    <p className="text-xs text-amber-700 mb-1">ボディ</p>
+                    <p className="text-2xl font-bold text-amber-900">
                       {recommendedOrder.pailBodySets.toLocaleString()}
-                      <span className="text-base font-normal ml-1">個</span>
+                      <span className="text-base font-normal ml-1">枚</span>
                     </p>
                   </div>
                 )}
 
                 {shortage.pailBottomLid > 0 && (
-                  <div className="bg-purple-100 p-3 rounded-md">
-                    <p className="text-xs text-purple-800 mb-1">底・蓋不足</p>
+                  <div className="bg-amber-100 p-3 rounded-md">
+                    <p className="text-xs text-amber-700 mb-1">ロール</p>
                     <div className="space-y-1">
-                      <p className="text-2xl font-bold text-purple-900">
-                        {recommendedOrder.pailBottomLidRolls.toLocaleString()}
-                        <span className="text-base font-normal ml-1">本</span>
-                        <span className="text-sm font-normal text-purple-700 ml-2">
-                          （ロール）
+                      <p className="text-2xl font-bold text-amber-900">
+                        {recommendedOrder.pailBottomLidMeters.toLocaleString()}
+                        <span className="text-base font-normal ml-1">m</span>
+                        <span className="text-sm font-normal text-amber-700 ml-2">
+                          （{recommendedOrder.pailBottomLidRolls.toLocaleString()}本）
                         </span>
                       </p>
-                      <p className="text-sm text-purple-700">
+                      <p className="text-sm text-amber-700">
                         = {recommendedOrder.pailBottomLidPieces.toLocaleString()}枚
-                      </p>
-                      <p className="text-xs text-purple-600">
-                        ※ おおよそ{" "}
-                        {recommendedOrder.pailEstimatedSets.toLocaleString()}
-                        セット分
                       </p>
                     </div>
                   </div>

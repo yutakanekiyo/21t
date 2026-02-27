@@ -102,7 +102,7 @@ export function MultiLocationInventoryPanel({
         </Card>
 
         {/* 合計在庫カード - ペール製品 */}
-        <Card className="border-2 border-green-500">
+        <Card className="border-2 border-black">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle className="flex items-center gap-2">
               <Package className="h-6 w-6" />
