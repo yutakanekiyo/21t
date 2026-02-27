@@ -171,27 +171,35 @@ export function OrderItem({ order, snapshot, onEdit, onDelete, onUpdateStatus }:
 
           <div className="pt-2 border-t">
             {(() => {
-              const netBody = snapshot.afterInventory.body - snapshot.bodyShortage;
-              const netBottom = snapshot.afterInventory.bottom - snapshot.bottomShortage;
-              const netLid = snapshot.afterInventory.lid - snapshot.lidShortage;
+              const bodyAfter = snapshot.afterInventory.body;
+              const bottomAfter = snapshot.afterInventory.bottom;
+              const lidAfter = snapshot.afterInventory.lid;
+              const isManufacturerPickup = snapshot.allocationStatus === 'manufacturer_pickup';
+              const negativeClass = isManufacturerPickup
+                ? 'text-amber-600 font-semibold'
+                : 'text-destructive font-semibold';
+              const renderValue = (value: number) =>
+                value < 0
+                  ? `${value.toLocaleString()}枚（要カット: ${Math.abs(value).toLocaleString()}枚）`
+                  : `${value.toLocaleString()}枚`;
               return (
                 <>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">処理後ボディ:</span>
-                    <span className={netBody < 0 ? 'text-destructive font-semibold' : ''}>
-                      {netBody.toLocaleString()}枚
+                    <span className={bodyAfter < 0 ? negativeClass : ''}>
+                      {renderValue(bodyAfter)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">処理後底:</span>
-                    <span className={netBottom < 0 ? 'text-destructive font-semibold' : ''}>
-                      {netBottom.toLocaleString()}枚
+                    <span className={bottomAfter < 0 ? negativeClass : ''}>
+                      {renderValue(bottomAfter)}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">処理後蓋:</span>
-                    <span className={netLid < 0 ? 'text-destructive font-semibold' : ''}>
-                      {netLid.toLocaleString()}枚
+                    <span className={lidAfter < 0 ? negativeClass : ''}>
+                      {renderValue(lidAfter)}
                     </span>
                   </div>
                 </>

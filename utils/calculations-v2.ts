@@ -57,6 +57,15 @@ export function calculateInventorySnapshotsV2(
 
   const snapshots: InventorySnapshot[] = [];
 
+  // 累積不足数（納期順に積み上がり、次受注の beforeInventory に引き継がれる）
+  // pail と standard は在庫プールが別なので独立して管理
+  let cumBodyDeficit = 0;
+  let cumPailBodyDeficit = 0;
+  let cumBottomDeficit = 0;
+  let cumLidDeficit = 0;
+  let cumPailBottomDeficit = 0;
+  let cumPailLidDeficit = 0;
+
   // 3. 各受注を処理
   for (const order of sortedOrders) {
     const isPail = order.productType === 'pail';
@@ -67,16 +76,16 @@ export function calculateInventorySnapshotsV2(
     // 変更後: 底1枚/セット + 蓋トータル（setQuantity*2 から setQuantity へ）
     const requiredBottomLid = order.setQuantity + order.additionalLids;
 
-    // 処理前の在庫（全体）
+    // 処理前の在庫（全体）- 累積不足分を反映した累積残数
     const totalBodyBefore = isPail
-      ? localPailBody + mfrPailBody
-      : localBody + mfrBody;
+      ? (localPailBody + mfrPailBody) - cumPailBodyDeficit
+      : (localBody + mfrBody) - cumBodyDeficit;
     const totalBottomBefore = isPail
-      ? localPailBottom + mfrPailBottom
-      : localBottom + mfrBottom;
+      ? (localPailBottom + mfrPailBottom) - cumPailBottomDeficit
+      : (localBottom + mfrBottom) - cumBottomDeficit;
     const totalLidBefore = isPail
-      ? localPailLid + mfrPailLid
-      : localLid + mfrLid;
+      ? (localPailLid + mfrPailLid) - cumPailLidDeficit
+      : (localLid + mfrLid) - cumLidDeficit;
     const totalRollsBefore = isPail
       ? localPailRolls + mfrPailRolls
       : localRolls + mfrRolls;
@@ -134,6 +143,9 @@ export function calculateInventorySnapshotsV2(
     let bottomLidProductionNeeded = 0;
     let bottomProductionNeeded = 0;
     let lidProductionNeeded = 0;
+    // 拠点在庫で充当できなかった枚数（メーカーロールで充足できる場合も含む）
+    let localBottomDeficit = 0;
+    let localLidDeficit = 0;
 
     if (isPail) {
       // ペール: 底と蓋で異なるロール歩留まり（655 vs 606）を使用した分割引当
@@ -156,6 +168,8 @@ export function calculateInventorySnapshotsV2(
 
       const remainingBottom = reqBottom - localBottomResult.allocated;
       const remainingLid = reqLid - localLidResult.allocated;
+      localBottomDeficit = remainingBottom;
+      localLidDeficit = remainingLid;
 
       if (remainingBottom > 0 || remainingLid > 0) {
         // メーカー在庫から引当
@@ -195,6 +209,8 @@ export function calculateInventorySnapshotsV2(
 
       const remainingBottom = reqBottom - localBottomResult.allocated;
       const remainingLid = reqLid - localLidResult.allocated;
+      localBottomDeficit = remainingBottom;
+      localLidDeficit = remainingLid;
 
       if (remainingBottom > 0 || remainingLid > 0) {
         // メーカー在庫から引当
@@ -225,16 +241,27 @@ export function calculateInventorySnapshotsV2(
       allocationStatus = 'local_ok';
     }
 
-    // 処理後の在庫（全体）
+    // 累積不足数を更新（この受注の不足分を次受注に引き継ぐ）
+    if (isPail) {
+      cumPailBodyDeficit += bodyProductionNeeded;
+      cumPailBottomDeficit += localBottomDeficit;
+      cumPailLidDeficit += localLidDeficit;
+    } else {
+      cumBodyDeficit += bodyProductionNeeded;
+      cumBottomDeficit += localBottomDeficit;
+      cumLidDeficit += localLidDeficit;
+    }
+
+    // 処理後の在庫（全体）- 累積不足分を反映した累積残数
     const totalBodyAfter = isPail
-      ? localPailBody + mfrPailBody
-      : localBody + mfrBody;
+      ? (localPailBody + mfrPailBody) - cumPailBodyDeficit
+      : (localBody + mfrBody) - cumBodyDeficit;
     const totalBottomAfter = isPail
-      ? localPailBottom + mfrPailBottom
-      : localBottom + mfrBottom;
+      ? (localPailBottom + mfrPailBottom) - cumPailBottomDeficit
+      : (localBottom + mfrBottom) - cumBottomDeficit;
     const totalLidAfter = isPail
-      ? localPailLid + mfrPailLid
-      : localLid + mfrLid;
+      ? (localPailLid + mfrPailLid) - cumPailLidDeficit
+      : (localLid + mfrLid) - cumLidDeficit;
     const totalRollsAfter = isPail
       ? localPailRolls + mfrPailRolls
       : localRolls + mfrRolls;
@@ -247,6 +274,7 @@ export function calculateInventorySnapshotsV2(
       orderNumber: order.orderNumber,
       customerName: order.customerName,
       deliveryDate: order.deliveryDate,
+      productType: isPail ? 'pail' : 'standard',
       setQuantity: order.setQuantity,
       additionalLids: order.additionalLids,
       beforeInventory: {
